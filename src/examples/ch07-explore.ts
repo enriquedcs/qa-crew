@@ -63,9 +63,16 @@ Explore the application at ${BOOKING_URL} the way a skilled human tester would:
 When the charter is covered or you are close to your step budget, call submit_result with your session notes.`;
 
 // Exploration needs a real model: a scripted one cannot react to what it sees.
-const model = modelOrMock(() => {
-  throw new Error("Exploratory sessions need a real model. Set QA_MODEL_PROVIDER and QA_MODEL in .env.");
-});
+let model;
+try {
+  model = modelOrMock(() => {
+    throw new Error("a scripted mock cannot react to a page it has not seen");
+  });
+} catch (error) {
+  console.error(`Exploratory sessions need a real model (${error instanceof Error ? error.message : error}).`);
+  console.error("Copy .env.example to .env and set QA_MODEL_PROVIDER, QA_MODEL and QA_MODEL_API_KEY. See Chapter 2.");
+  process.exit(1);
+}
 
 // Start from a clean app.
 await fetch(new URL("/api/test/reset", BOOKING_URL), { method: "POST" });
