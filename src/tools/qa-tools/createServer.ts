@@ -1,4 +1,6 @@
+import { execFile } from "node:child_process";
 import { mkdir, readFile, readdir, writeFile } from "node:fs/promises";
+import { promisify } from "node:util";
 import path from "node:path";
 import { McpServer } from "@modelcontextprotocol/server";
 import * as z from "zod/v4";
@@ -27,6 +29,8 @@ export interface QaToolsOptions {
   projectRoot?: string;
   /** Folder of team knowledge (past bugs, notes) that search_knowledge reads. */
   knowledgeDir?: string;
+  /** Folder of issues (the tracker) that search_issues reads. */
+  issuesDir?: string;
   /** Register the tools that write and run generated tests (in tests/generated/ only). Off by default. */
   allowTestWrites?: boolean;
   /** Port for the copy of the app that generated-test runs start. */
@@ -42,6 +46,7 @@ export function optionsFromEnv(env: Record<string, string | undefined> = process
     readmePath: env.QA_TOOLS_README ?? "README.md",
     projectRoot: env.QA_TOOLS_PROJECT_ROOT ?? ".",
     knowledgeDir: env.QA_TOOLS_KNOWLEDGE_DIR ?? "knowledge",
+    issuesDir: env.QA_TOOLS_ISSUES_DIR ?? "issues",
     allowTestWrites: env.QA_TOOLS_ALLOW_TEST_WRITES === "true",
     runnerAppPort: Number(env.QA_TOOLS_RUNNER_PORT ?? 3200),
   };
@@ -64,6 +69,7 @@ export function createQaToolsServer(options: QaToolsOptions): McpServer {
   const readmePath = path.resolve(options.readmePath ?? "README.md");
   const projectRoot = path.resolve(options.projectRoot ?? ".");
   const knowledgeDir = path.resolve(options.knowledgeDir ?? "knowledge");
+  const issuesDir = path.resolve(options.issuesDir ?? "issues");
 
   async function api(pathname: string, init?: RequestInit): Promise<{ status: number; body: unknown }> {
     const res = await fetch(new URL(pathname, base), {
@@ -231,6 +237,54 @@ export function createQaToolsServer(options: QaToolsOptions): McpServer {
       const hits = await searchKnowledge(knowledgeDir, query, limit ?? 3);
       if (hits.length === 0) return { content: [{ type: "text", text: `Nothing in the team knowledge matches "${query}".` }] };
       return json(hits);
+    },
+  );
+
+  server.registerTool(
+    "search_issues",
+    {
+      title: "Search issues",
+      description:
+        "Search the issue tracker (open and closed issues) for a problem that may already be reported. " +
+        "Search before drafting a new bug report, with words that describe the symptom, e.g. 'API capacity guests'.",
+      inputSchema: z.object({
+        query: z.string().min(2).describe("Words that describe the problem"),
+        limit: z.number().int().min(1).max(10).optional(),
+      }),
+      annotations: readOnly,
+    },
+    async ({ query, limit }) => {
+      const hits = await searchKnowledge(issuesDir, query, limit ?? 3);
+      if (hits.length === 0) return { content: [{ type: "text", text: `No issue matches "${query}".` }] };
+      return json(hits.map(({ file, title, score, text }) => ({ id: title.split(":")[0], file, title, score, text })));
+    },
+  );
+
+  server.registerTool(
+    "recent_changes",
+    {
+      title: "Recent changes",
+      description:
+        "Show the most recent commits that touched a path (default: the application code in src/app), " +
+        "with the files each one changed. Use it to check whether a failure lines up with a recent change.",
+      inputSchema: z.object({
+        path: z.string().optional().describe("Path from the project root, default src/app"),
+        limit: z.number().int().min(1).max(20).optional(),
+      }),
+      annotations: readOnly,
+    },
+    async ({ path: target, limit }) => {
+      const file = resolveInside(projectRoot, target ?? "src/app");
+      try {
+        const { stdout } = await promisify(execFile)(
+          "git",
+          ["log", `-n${limit ?? 5}`, "--date=short", "--format=%h %ad %an: %s", "--stat", "--", path.relative(projectRoot, file)],
+          { cwd: projectRoot },
+        );
+        return { content: [{ type: "text", text: stdout.trim() || "No commits touch this path." }] };
+      } catch (error) {
+        return failure(`Could not read the history: ${error instanceof Error ? error.message.split("\n")[0] : String(error)}`);
+      }
     },
   );
 

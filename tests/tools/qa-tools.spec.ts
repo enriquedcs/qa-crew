@@ -37,6 +37,8 @@ test.describe("qa-tools, default (read-only) configuration", () => {
       "list_rooms",
       "list_test_files",
       "read_test_file",
+      "recent_changes",
+      "search_issues",
       "search_knowledge",
       "trace_requirements",
     ]);

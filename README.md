@@ -51,6 +51,9 @@ npm test
 | `src/agents/executor/` | The Executor: test cases to Playwright tests, with quality gates and verified results (Chapter 7) |
 | `tests/support/` | Fixtures, page objects and date helpers shared by humans and agents |
 | `tests/generated/` | Drafts written by the Executor (not committed; promote the ones worth keeping) |
+| `issues/` | The booking app's issue tracker, as Markdown (Chapter 8) |
+| `src/agents/triager/` | The Triager: evidence, classification, guards and draft bug reports (Chapter 8) |
+| `tests/triage-demo/` | A red build with four failures, each for a different reason (Chapter 8) |
 
 More folders appear as you progress through the book (`src/agents/`, `src/tools/`, `src/crew/` and so on).
 
@@ -86,6 +89,7 @@ Each agent reads the previous one's output from `out/` and writes its own, so yo
 npm run ch05      # Analyst  -> out/analyst/booking-rules.risk-map.{md,json}   (review and edit the JSON)
 npm run ch06      # Designer -> out/designer/booking-rules.test-plan.{md,json}
 npm run ch07      # Executor -> tests/generated/*.spec.ts and out/executor/booking-rules.execution.json
+npm run ch08      # Triager  -> out/triager/triage.md and draft bug reports in out/triager/issues/
 ```
 
 Add `QA_MODEL_PROVIDER=mock` in front of any of them to watch a scripted run without an API key.

@@ -205,3 +205,96 @@ export const executionReportSchema: JsonSchema = {
   },
   required: ["caseId", "file", "outcome", "attempts", "evidence", "notes"],
 };
+
+// ---------------------------------------------------------------------------
+// Triager: from a red build to classified failures and draft bug reports
+// ---------------------------------------------------------------------------
+
+export const CLASSIFICATIONS = ["product-bug", "test-bug", "environment", "flaky", "needs-human"] as const;
+export type Classification = (typeof CLASSIFICATIONS)[number];
+
+/** One failing test, as it arrives from a test run or from the Executor. */
+export interface Failure {
+  file: string; // path from the project root, e.g. tests/generated/tc-02-capacity.spec.ts
+  title: string;
+  error: string;
+  caseId?: string;
+  /** The oracle, when the failure comes from a test case in a plan. */
+  expected?: string;
+}
+
+/** Facts gathered by code before the model sees anything. */
+export interface EvidencePack {
+  failure: Failure;
+  /** Outcome of the original run plus the re-runs, in order. */
+  runs: { status: string; error?: string }[];
+  /** Did every run fail with the same error headline? */
+  consistent: boolean;
+  appHealthy: boolean;
+  testSource: string;
+}
+
+export interface BugReport {
+  title: string;
+  severity: "critical" | "high" | "medium" | "low";
+  summary: string;
+  stepsToReproduce: string[];
+  expected: string;
+  actual: string;
+  requirementIds: string[];
+  suspectedArea: string;
+}
+
+export interface TriageItem {
+  file: string;
+  title: string;
+  caseId?: string;
+  classification: Classification;
+  confidence: "high" | "medium" | "low";
+  rationale: string;
+  evidence: string[];
+  /** An existing issue this failure is already reported as. */
+  duplicateOf?: string;
+  /** For a new product bug: a draft a developer can act on. */
+  bugReport?: BugReport;
+  /** For a test bug: the change a human should make. The Triager never edits tests. */
+  testFix?: { summary: string; change: string };
+  /** For a flaky test: the likely cause. */
+  flakinessCause?: string;
+  // Filled in by code:
+  warnings?: string[];
+}
+
+export const triageItemSchema: JsonSchema = {
+  type: "object",
+  properties: {
+    classification: { type: "string", enum: [...CLASSIFICATIONS] },
+    confidence: { type: "string", enum: ["high", "medium", "low"] },
+    rationale: { type: "string", description: "Why this classification, in two or three sentences, citing the evidence." },
+    evidence: { type: "array", minItems: 1, items: { type: "string" } },
+    duplicateOf: { type: "string", description: "Only if search_issues found the same problem already reported: its id, e.g. ISSUE-0031." },
+    bugReport: {
+      type: "object",
+      description: "Only for a NEW product bug (not a duplicate).",
+      properties: {
+        title: { type: "string", description: "What is broken, from the user's point of view." },
+        severity: { type: "string", enum: ["critical", "high", "medium", "low"] },
+        summary: { type: "string" },
+        stepsToReproduce: { type: "array", minItems: 1, items: { type: "string" } },
+        expected: { type: "string", description: "Cite the requirement id." },
+        actual: { type: "string" },
+        requirementIds: { type: "array", items: { type: "string" } },
+        suspectedArea: { type: "string", description: "Where in the code the fix probably belongs." },
+      },
+      required: ["title", "severity", "summary", "stepsToReproduce", "expected", "actual", "requirementIds", "suspectedArea"],
+    },
+    testFix: {
+      type: "object",
+      description: "Only for a test bug: the change a human should make to the test.",
+      properties: { summary: { type: "string" }, change: { type: "string", description: "The lines to change, before and after." } },
+      required: ["summary", "change"],
+    },
+    flakinessCause: { type: "string", description: "Only for a flaky test: the most likely cause." },
+  },
+  required: ["classification", "confidence", "rationale", "evidence"],
+};

@@ -1,6 +1,6 @@
 {
   "name": "qa-crew",
-  "version": "0.7.0",
+  "version": "0.8.0",
   "description": "Companion code for the book Agentic QA: a booking app and a team of AI testing agents.",
   "private": true,
   "type": "module",
@@ -18,6 +18,7 @@
     "ch06": "tsx src/examples/ch06-designer.ts",
     "ch07": "tsx src/examples/ch07-executor.ts",
     "ch07:explore": "tsx src/examples/ch07-explore.ts",
+    "ch08": "tsx src/examples/ch08-triager.ts",
     "test": "playwright test",
     "test:report": "playwright show-report",
     "typecheck": "tsc --noEmit"
