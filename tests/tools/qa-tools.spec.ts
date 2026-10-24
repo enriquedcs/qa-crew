@@ -33,9 +33,11 @@ test.describe("qa-tools, default (read-only) configuration", () => {
       "get_api_reference",
       "get_booking",
       "list_bookings",
+      "list_requirements",
       "list_rooms",
       "list_test_files",
       "read_test_file",
+      "trace_requirements",
     ]);
   });
 
@@ -64,6 +66,15 @@ test.describe("qa-tools, default (read-only) configuration", () => {
     expect(files).toContain("baseline/api.spec.ts");
     const source = String(await tool(toolbox, "read_test_file").run({ path: "baseline/api.spec.ts" }));
     expect(source).toContain("lists the available rooms");
+  });
+
+  test("list_requirements reads both Spec Kit specs and ODD feature documents", async () => {
+    const docs = JSON.parse(String(await tool(toolbox, "list_requirements").run({})));
+    expect(docs.map((d: { key: string; workflow: string }) => `${d.workflow}:${d.key}`)).toEqual([
+      "sdd:booking-rules",
+      "odd:max-stay-limit",
+    ]);
+    await expect(tool(toolbox, "list_requirements").run({ key: "nope" })).rejects.toThrow(/Available: booking-rules/);
   });
 
   test("read_test_file refuses to leave the tests folder", async () => {

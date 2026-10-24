@@ -40,6 +40,10 @@ npm test
 | `src/tools/qa-tools/` | The `qa-tools` MCP server: the booking API and the test suite as tools (Chapter 3) |
 | `src/mcp/` | The bridge that turns MCP tools into agent tools (Chapter 3) |
 | `.mcp.json` | MCP servers for this project, shared by the agents and by Claude Code |
+| `specs/` | Spec Kit specifications (Spec-Driven Development), starting with the booking rules (Chapter 4) |
+| `odd/tasks/` | ODD feature documents (Organic Driven Development), with a QA lens (Chapter 4) |
+| `src/specs/` | Parsers that read both formats as one list of requirements, and the requirements-to-tests trace |
+| `tests/spec/` | Executable acceptance checks, tagged with requirement ids such as `@booking-rules:FR-005` |
 
 More folders appear as you progress through the book (`src/agents/`, `src/tools/`, `src/crew/` and so on).
 
@@ -66,6 +70,10 @@ To explore the tools by hand:
 ```bash
 npx @modelcontextprotocol/inspector npx tsx src/tools/qa-tools/main.ts
 ```
+
+## Requirements and traceability
+
+Run `npm run trace` to see which requirements in `specs/` and `odd/tasks/` have tests, which do not, which test tags point at requirements that no longer exist, and which questions are still open. Add `-- --strict` in CI to fail the build on drift.
 
 ## Following the book
 

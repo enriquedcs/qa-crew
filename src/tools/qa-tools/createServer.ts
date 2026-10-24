@@ -2,6 +2,8 @@ import { readFile, readdir } from "node:fs/promises";
 import path from "node:path";
 import { McpServer } from "@modelcontextprotocol/server";
 import * as z from "zod/v4";
+import { loadRequirements } from "../../specs/requirements.ts";
+import { buildTraceReport, findRequirementTags } from "../../specs/trace.ts";
 import { assertTestEnvironment, resolveInside } from "./safety.ts";
 
 // qa-tools: the booking app and the test suite, exposed as MCP tools.
@@ -18,6 +20,8 @@ export interface QaToolsOptions {
   testsDir?: string;
   /** File that documents the API (the "Booking API" section is returned). */
   readmePath?: string;
+  /** Project root that holds specs/ (Spec Kit) and odd/tasks/ (ODD feature documents). */
+  projectRoot?: string;
 }
 
 export function optionsFromEnv(env: Record<string, string | undefined> = process.env): QaToolsOptions {
@@ -27,6 +31,7 @@ export function optionsFromEnv(env: Record<string, string | undefined> = process
     allowWrites: env.QA_TOOLS_ALLOW_WRITES === "true",
     testsDir: env.QA_TOOLS_TESTS_DIR ?? "tests",
     readmePath: env.QA_TOOLS_README ?? "README.md",
+    projectRoot: env.QA_TOOLS_PROJECT_ROOT ?? ".",
   };
 }
 
@@ -45,6 +50,7 @@ export function createQaToolsServer(options: QaToolsOptions): McpServer {
   const base = assertTestEnvironment(options.bookingUrl, options.allowedHosts);
   const testsDir = path.resolve(options.testsDir ?? "tests");
   const readmePath = path.resolve(options.readmePath ?? "README.md");
+  const projectRoot = path.resolve(options.projectRoot ?? ".");
 
   async function api(pathname: string, init?: RequestInit): Promise<{ status: number; body: unknown }> {
     const res = await fetch(new URL(pathname, base), {
@@ -155,6 +161,43 @@ export function createQaToolsServer(options: QaToolsOptions): McpServer {
       } catch {
         return failure(`Cannot read "${requested}". Use list_test_files to see the available files.`);
       }
+    },
+  );
+
+  server.registerTool(
+    "list_requirements",
+    {
+      title: "List requirements",
+      description:
+        "List the product requirements from Spec Kit specs (specs/) and ODD feature documents (odd/tasks/), " +
+        "with their ids, acceptance checks and open questions. Use the ids to tag tests.",
+      inputSchema: z.object({
+        key: z.string().optional().describe("Only this document, for example booking-rules or max-stay-limit"),
+      }),
+      annotations: readOnly,
+    },
+    async ({ key }) => {
+      const docs = await loadRequirements(projectRoot);
+      const selected = key ? docs.filter((d) => d.key === key) : docs;
+      if (key && selected.length === 0) {
+        return failure(`No requirements document "${key}". Available: ${docs.map((d) => d.key).join(", ")}.`);
+      }
+      return json(selected);
+    },
+  );
+
+  server.registerTool(
+    "trace_requirements",
+    {
+      title: "Trace requirements to tests",
+      description:
+        "Report which requirements have tests (by tag, for example @booking-rules:FR-005), which have none, " +
+        "which test tags match no requirement, and which questions are still open.",
+      annotations: readOnly,
+    },
+    async () => {
+      const docs = await loadRequirements(projectRoot);
+      return json(buildTraceReport(docs, await findRequirementTags(testsDir)));
     },
   );
 
