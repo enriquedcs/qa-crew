@@ -22,6 +22,8 @@ export function printEvents(prefix = ""): (event: AgentEvent) => void {
       }
     } else if (e.type === "tool") {
       console.log(`${tag} <- ${e.name}${e.isError ? " (error)" : ""}: ${e.result.length} chars`);
+    } else if (e.type === "truncated") {
+      console.log(`${tag} response cut off at the ${e.maxTokens}-token output limit; asking for a shorter one`);
     } else {
       console.log(`${tag} invalid result: ${e.errors.join("; ")}`);
     }

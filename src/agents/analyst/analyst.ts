@@ -31,7 +31,7 @@ Look especially for:
 - Requirements that contradict each other, and behavior no requirement mentions.
 
 Do not invent requirement ids. Only use ids returned by list_requirements.
-Prefer 5-10 sharp risks to 30 vague ones.
+Prefer 5-10 sharp risks to 30 vague ones. Keep each rationale and each evidence item to one or two sentences.
 When you are done, call submit_result with the risk map.`;
 
 export interface AnalystOptions {

@@ -80,3 +80,21 @@ test("on the last step, an agent that owes a result can only submit it", async (
   expect(model.requests[2].tools.map((t) => t.name)).toEqual([SUBMIT_TOOL]);
   expect(model.requests[2].system).toContain("This is your last step");
 });
+
+test("a response cut off at the output limit is not run; the model is told to be more concise", async () => {
+  const model = createMockClient([
+    { toolCalls: [{ name: SUBMIT_TOOL, input: {} }], truncated: true },
+    { toolCalls: [{ name: SUBMIT_TOOL, input: { verdict: "pass" } }] },
+  ]);
+  const events: string[] = [];
+  const result = await runAgent<{ verdict: string }>({
+    model, system: "s", task: "t", output: { schema }, maxTokens: 1000, onEvent: (e) => events.push(e.type),
+  });
+
+  expect(result.output).toEqual({ verdict: "pass" });
+  expect(events).toContain("truncated");
+  expect(events).not.toContain("invalid_output");
+  expect(model.requests[0].maxTokens).toBe(1000);
+  const notice = model.requests[1].messages.find((m) => m.role === "tool");
+  expect(notice && "content" in notice ? notice.content : "").toContain("output limit of 1000 tokens");
+});

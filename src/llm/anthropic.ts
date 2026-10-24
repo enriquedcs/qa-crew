@@ -1,4 +1,4 @@
-import type { CompletionRequest, CompletionResponse, Message, ModelClient, ToolCall } from "./types.ts";
+import { DEFAULT_MAX_TOKENS, type CompletionRequest, type CompletionResponse, type Message, type ModelClient, type ToolCall } from "./types.ts";
 
 // Adapter for the Anthropic Messages API (Claude models).
 
@@ -64,7 +64,7 @@ export function createAnthropicClient(options: AnthropicOptions): ModelClient {
         },
         body: JSON.stringify({
           model: options.model,
-          max_tokens: request.maxTokens ?? 2048,
+          max_tokens: request.maxTokens ?? DEFAULT_MAX_TOKENS,
           system: request.system,
           messages: toAnthropicMessages(request.messages),
           tools: request.tools.map((t) => ({ name: t.name, description: t.description, input_schema: t.inputSchema })),
@@ -73,6 +73,7 @@ export function createAnthropicClient(options: AnthropicOptions): ModelClient {
       if (!res.ok) throw new Error(`Anthropic API error ${res.status}: ${await res.text()}`);
       const data = (await res.json()) as {
         content: ContentBlock[];
+        stop_reason?: string;
         usage?: { input_tokens: number; output_tokens: number };
       };
 
@@ -88,6 +89,7 @@ export function createAnthropicClient(options: AnthropicOptions): ModelClient {
         text: text || undefined,
         toolCalls,
         usage: { inputTokens: data.usage?.input_tokens ?? 0, outputTokens: data.usage?.output_tokens ?? 0 },
+        truncated: data.stop_reason === "max_tokens",
       };
     },
   };

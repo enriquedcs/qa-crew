@@ -4,8 +4,8 @@ import type { CompletionRequest, CompletionResponse, ModelClient, ToolCall } fro
 // Each turn is either a fixed response or a function of the request so far.
 
 export type MockTurn =
-  | { text?: string; toolCalls?: Omit<ToolCall, "id">[] }
-  | ((request: CompletionRequest) => { text?: string; toolCalls?: Omit<ToolCall, "id">[] });
+  | { text?: string; toolCalls?: Omit<ToolCall, "id">[]; truncated?: boolean }
+  | ((request: CompletionRequest) => { text?: string; toolCalls?: Omit<ToolCall, "id">[]; truncated?: boolean });
 
 export interface MockClient extends ModelClient {
   /** Every request the agent sent, for assertions in tests. */
@@ -29,6 +29,7 @@ export function createMockClient(turns: MockTurn[]): MockClient {
         text: resolved.text,
         toolCalls: (resolved.toolCalls ?? []).map((c) => ({ ...c, id: `call_${++callCounter}` })),
         usage: { inputTokens: 0, outputTokens: 0 },
+        ...(resolved.truncated ? { truncated: true } : {}),
       };
     },
   };

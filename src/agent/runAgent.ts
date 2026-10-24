@@ -1,4 +1,4 @@
-import type { JsonSchema, Message, ModelClient, ToolCall, ToolSpec, Usage } from "../llm/types.ts";
+import { DEFAULT_MAX_TOKENS, type JsonSchema, type Message, type ModelClient, type ToolCall, type ToolSpec, type Usage } from "../llm/types.ts";
 import { validate } from "./schema.ts";
 
 /** A capability the agent can use: a spec the model sees, plus the code that runs. */
@@ -17,6 +17,8 @@ export interface AgentOptions {
   output?: { schema: JsonSchema; description?: string };
   /** Hard stop: the maximum number of model calls. */
   maxSteps?: number;
+  /** The most the model may write in one response. Structured results need room. */
+  maxTokens?: number;
   /** Called after every step, for logging and tracing. */
   onEvent?: (event: AgentEvent) => void;
 }
@@ -24,7 +26,8 @@ export interface AgentOptions {
 export type AgentEvent =
   | { type: "model"; step: number; text?: string; toolCalls: ToolCall[] }
   | { type: "tool"; step: number; name: string; input: Record<string, unknown>; result: string; isError: boolean }
-  | { type: "invalid_output"; step: number; errors: string[] };
+  | { type: "invalid_output"; step: number; errors: string[] }
+  | { type: "truncated"; step: number; maxTokens: number };
 
 export interface AgentResult<T> {
   status: "done" | "max_steps";
@@ -42,7 +45,7 @@ function stringify(result: unknown): string {
 }
 
 export async function runAgent<T = unknown>(options: AgentOptions): Promise<AgentResult<T>> {
-  const { model, system, task, tools = [], output, maxSteps = 10, onEvent } = options;
+  const { model, system, task, tools = [], output, maxSteps = 10, maxTokens = DEFAULT_MAX_TOKENS, onEvent } = options;
 
   const specs: ToolSpec[] = tools.map(({ name, description, inputSchema }) => ({ name, description, inputSchema }));
   if (output) {
@@ -66,12 +69,30 @@ export async function runAgent<T = unknown>(options: AgentOptions): Promise<Agen
         : system,
       messages,
       tools: lastChance ? specs.filter((s) => s.name === SUBMIT_TOOL) : specs,
+      maxTokens,
     });
     usage.inputTokens += response.usage.inputTokens;
     usage.outputTokens += response.usage.outputTokens;
 
     messages.push({ role: "assistant", text: response.text, toolCalls: response.toolCalls });
     onEvent?.({ type: "model", step, text: response.text, toolCalls: response.toolCalls });
+
+    // The response hit the output limit, so the last tool call may be cut off mid-way.
+    // Do not run or validate it: tell the model what happened and how to fix it.
+    if (response.truncated) {
+      onEvent?.({ type: "truncated", step, maxTokens });
+      const notice =
+        `Your response was cut off because it reached the output limit of ${maxTokens} tokens, so your tool call ` +
+        `was incomplete and nothing was run. Send it again, more concisely: shorter texts, fewer items, no repetition.`;
+      if (response.toolCalls.length === 0) {
+        messages.push({ role: "user", content: notice });
+      } else {
+        for (const call of response.toolCalls) {
+          messages.push({ role: "tool", toolCallId: call.id, name: call.name, isError: true, content: notice });
+        }
+      }
+      continue;
+    }
 
     // No tool calls: the model thinks it is done.
     if (response.toolCalls.length === 0) {

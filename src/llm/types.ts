@@ -43,7 +43,12 @@ export interface CompletionResponse {
   text?: string;
   toolCalls: ToolCall[];
   usage: Usage;
+  /** True when the model stopped because it hit the output token limit: the last tool call may be incomplete. */
+  truncated?: boolean;
 }
+
+/** Room for a model to think and write a structured result. Long results need more than you expect. */
+export const DEFAULT_MAX_TOKENS = 8192;
 
 /** The only thing an agent needs from a model. */
 export interface ModelClient {

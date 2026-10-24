@@ -1,4 +1,4 @@
-import type { CompletionRequest, CompletionResponse, Message, ModelClient, ToolCall } from "./types.ts";
+import { DEFAULT_MAX_TOKENS, type CompletionRequest, type CompletionResponse, type Message, type ModelClient, type ToolCall } from "./types.ts";
 
 // Adapter for any API that speaks the OpenAI Chat Completions format:
 // OpenAI itself, and many other providers and local runtimes (for example Ollama or LM Studio)
@@ -65,7 +65,7 @@ export function createOpenAICompatibleClient(options: OpenAICompatibleOptions): 
 
       const body: Record<string, unknown> = {
         model: options.model,
-        max_tokens: request.maxTokens ?? 2048,
+        max_tokens: request.maxTokens ?? DEFAULT_MAX_TOKENS,
         messages: toChatMessages(request.system, request.messages),
       };
       if (request.tools.length > 0) {
@@ -79,6 +79,7 @@ export function createOpenAICompatibleClient(options: OpenAICompatibleOptions): 
       if (!res.ok) throw new Error(`${provider} API error ${res.status}: ${await res.text()}`);
       const data = (await res.json()) as {
         choices: {
+          finish_reason?: string;
           message: {
             content: string | null;
             tool_calls?: { id: string; function: { name: string; arguments: string } }[];
@@ -98,6 +99,7 @@ export function createOpenAICompatibleClient(options: OpenAICompatibleOptions): 
         text: message.content ?? undefined,
         toolCalls,
         usage: { inputTokens: data.usage?.prompt_tokens ?? 0, outputTokens: data.usage?.completion_tokens ?? 0 },
+        truncated: data.choices[0]?.finish_reason === "length",
       };
     },
   };

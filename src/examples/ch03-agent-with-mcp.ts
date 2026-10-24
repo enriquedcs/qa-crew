@@ -114,6 +114,8 @@ try {
         for (const call of e.toolCalls) console.log(`[step ${e.step}] -> ${call.name}(${JSON.stringify(call.input)})`);
       } else if (e.type === "tool") {
         console.log(`[step ${e.step}] <- ${e.name}${e.isError ? " (error)" : ""}: ${e.result.length} chars`);
+      } else if (e.type === "truncated") {
+        console.log(`[step ${e.step}] response cut off at the ${e.maxTokens}-token output limit`);
       } else {
         console.log(`[step ${e.step}] invalid result: ${e.errors.join("; ")}`);
       }
