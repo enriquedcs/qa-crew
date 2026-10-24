@@ -9,3 +9,6 @@ blob-report/
 
 # Agent output (risk maps, test plans, run reports)
 out/
+
+# Drafts written by the Executor; promote the ones worth keeping
+tests/generated/

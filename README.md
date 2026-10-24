@@ -44,6 +44,13 @@ npm test
 | `odd/tasks/` | ODD feature documents (Organic Driven Development), with a QA lens (Chapter 4) |
 | `src/specs/` | Parsers that read both formats as one list of requirements, and the requirements-to-tests trace |
 | `tests/spec/` | Executable acceptance checks, tagged with requirement ids such as `@booking-rules:FR-005` |
+| `knowledge/` | Team knowledge the agents can search: past bug reports and notes (Chapter 5) |
+| `src/crew/contracts.ts` | The hand-off contracts between agents: risk map, test plan, execution report |
+| `src/agents/analyst/` | The Analyst: requirements to a reviewed risk map (Chapter 5) |
+| `src/agents/designer/` | The Designer: risks to a curated test plan (Chapter 6) |
+| `src/agents/executor/` | The Executor: test cases to Playwright tests, with quality gates and verified results (Chapter 7) |
+| `tests/support/` | Fixtures, page objects and date helpers shared by humans and agents |
+| `tests/generated/` | Drafts written by the Executor (not committed; promote the ones worth keeping) |
 
 More folders appear as you progress through the book (`src/agents/`, `src/tools/`, `src/crew/` and so on).
 
@@ -70,6 +77,18 @@ To explore the tools by hand:
 ```bash
 npx @modelcontextprotocol/inspector npx tsx src/tools/qa-tools/main.ts
 ```
+
+## Running the crew
+
+Each agent reads the previous one's output from `out/` and writes its own, so you can review every hand-off:
+
+```bash
+npm run ch05      # Analyst  -> out/analyst/booking-rules.risk-map.{md,json}   (review and edit the JSON)
+npm run ch06      # Designer -> out/designer/booking-rules.test-plan.{md,json}
+npm run ch07      # Executor -> tests/generated/*.spec.ts and out/executor/booking-rules.execution.json
+```
+
+Add `QA_MODEL_PROVIDER=mock` in front of any of them to watch a scripted run without an API key.
 
 ## Requirements and traceability
 

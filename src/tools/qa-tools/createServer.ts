@@ -1,8 +1,10 @@
-import { readFile, readdir } from "node:fs/promises";
+import { mkdir, readFile, readdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { McpServer } from "@modelcontextprotocol/server";
 import * as z from "zod/v4";
+import { checkGeneratedTest } from "../../agents/executor/gates.ts";
 import { searchKnowledge } from "../../knowledge/search.ts";
+import { runPlaywright } from "../../runner/playwright.ts";
 import { loadRequirements } from "../../specs/requirements.ts";
 import { buildTraceReport, findRequirementTags } from "../../specs/trace.ts";
 import { assertTestEnvironment, resolveInside } from "./safety.ts";
@@ -25,6 +27,10 @@ export interface QaToolsOptions {
   projectRoot?: string;
   /** Folder of team knowledge (past bugs, notes) that search_knowledge reads. */
   knowledgeDir?: string;
+  /** Register the tools that write and run generated tests (in tests/generated/ only). Off by default. */
+  allowTestWrites?: boolean;
+  /** Port for the copy of the app that generated-test runs start. */
+  runnerAppPort?: number;
 }
 
 export function optionsFromEnv(env: Record<string, string | undefined> = process.env): QaToolsOptions {
@@ -36,6 +42,8 @@ export function optionsFromEnv(env: Record<string, string | undefined> = process
     readmePath: env.QA_TOOLS_README ?? "README.md",
     projectRoot: env.QA_TOOLS_PROJECT_ROOT ?? ".",
     knowledgeDir: env.QA_TOOLS_KNOWLEDGE_DIR ?? "knowledge",
+    allowTestWrites: env.QA_TOOLS_ALLOW_TEST_WRITES === "true",
+    runnerAppPort: Number(env.QA_TOOLS_RUNNER_PORT ?? 3200),
   };
 }
 
@@ -269,6 +277,60 @@ export function createQaToolsServer(options: QaToolsOptions): McpServer {
       async () => {
         const { status } = await api("/api/test/reset", { method: "POST" });
         return status === 204 ? json({ status, reset: true }) : failure(`POST /api/test/reset returned ${status}`);
+      },
+    );
+  }
+
+  // ---------- Generated tests: written only inside tests/generated/, after the quality gates ----------
+
+  if (options.allowTestWrites) {
+    const generatedDir = path.join(testsDir, "generated");
+    const sandboxed = (file: string) => {
+      if (!/^[a-z0-9][a-z0-9-]*\.spec\.ts$/.test(file)) {
+        throw new Error(`"${file}" is not a valid file name. Use lowercase letters, digits and dashes, ending in .spec.ts (for example tc-02-capacity.spec.ts).`);
+      }
+      return resolveInside(generatedDir, file);
+    };
+
+    server.registerTool(
+      "write_generated_test",
+      {
+        title: "Write generated test",
+        description:
+          "Save a Playwright test in tests/generated/. The test is checked by the team's quality gates first; " +
+          "if it fails a gate, nothing is written and you get the reasons. Overwrites a file with the same name.",
+        inputSchema: z.object({
+          file: z.string().describe("File name only, for example tc-02-capacity.spec.ts"),
+          content: z.string().describe("The full TypeScript source of the test file"),
+          caseId: z.string().optional().describe("The test case id, for example TC-02"),
+        }),
+        annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: false },
+      },
+      async ({ file, content, caseId }) => {
+        const target = sandboxed(file);
+        const gates = checkGeneratedTest(content, { caseId });
+        if (gates.errors.length > 0) {
+          return failure(`Not saved. Fix these problems and write the file again:\n- ${gates.errors.join("\n- ")}`);
+        }
+        await mkdir(generatedDir, { recursive: true });
+        await writeFile(target, content);
+        return json({ saved: `tests/generated/${file}`, warnings: gates.warnings });
+      },
+    );
+
+    server.registerTool(
+      "run_generated_test",
+      {
+        title: "Run generated test",
+        description:
+          "Run one file from tests/generated/ with Playwright against a fresh copy of the booking app. " +
+          "Returns each test's status and the first lines of any error.",
+        inputSchema: z.object({ file: z.string().describe("File name, for example tc-02-capacity.spec.ts") }),
+        annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: false },
+      },
+      async ({ file }) => {
+        sandboxed(file);
+        return json(await runPlaywright(`tests/generated/${file}`, { appPort: options.runnerAppPort }));
       },
     );
   }

@@ -4,6 +4,8 @@ const PORT = Number(process.env.APP_PORT ?? 3100);
 
 export default defineConfig({
   testDir: "./tests",
+  // Generated tests are drafts until a human promotes them; they only run when asked for.
+  testIgnore: process.env.QA_RUN_GENERATED ? [] : ["**/generated/**"],
   fullyParallel: false,
   workers: 1,
   reporter: [["list"], ["html", { open: "never" }]],

@@ -4,6 +4,7 @@ import type { ModelClient } from "./types.ts";
 
 export type * from "./types.ts";
 export { createMockClient } from "./mock.ts";
+export type { MockClient, MockTurn } from "./mock.ts";
 
 /**
  * Build a model client from environment variables, so switching vendors is configuration, not code.

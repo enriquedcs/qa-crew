@@ -165,3 +165,40 @@ export const testPlanSchema: JsonSchema = {
   },
   required: ["feature", "cases"],
 };
+
+// ---------------------------------------------------------------------------
+// Executor -> Triager: the execution report
+// ---------------------------------------------------------------------------
+
+export const OUTCOMES = ["passed", "failing-suspected-product-bug", "blocked"] as const;
+
+export interface ExecutionReport {
+  caseId: string;
+  file: string;
+  outcome: (typeof OUTCOMES)[number];
+  attempts: number;
+  /** The decisive evidence: the passing run, or the failing assertion with expected and actual values. */
+  evidence: string;
+  notes: string;
+  /** Filled in by code: did an independent re-run agree with the agent's claim? */
+  verified?: boolean;
+  verification?: string;
+}
+
+export const executionReportSchema: JsonSchema = {
+  type: "object",
+  properties: {
+    caseId: { type: "string" },
+    file: { type: "string", description: "The file name in tests/generated/" },
+    outcome: {
+      type: "string",
+      enum: [...OUTCOMES],
+      description:
+        "passed: the test passes and checks the case's oracle. failing-suspected-product-bug: the test is correct and fails on the oracle. blocked: you could not make the test run correctly.",
+    },
+    attempts: { type: "integer", minimum: 1, description: "How many times you ran the test." },
+    evidence: { type: "string", description: "The decisive output: for a failure, the assertion with expected and received values." },
+    notes: { type: "string", description: "Anything the reviewer should know, such as assumptions or gate warnings." },
+  },
+  required: ["caseId", "file", "outcome", "attempts", "evidence", "notes"],
+};
