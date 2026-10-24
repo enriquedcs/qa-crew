@@ -57,7 +57,16 @@ export async function runAgent<T = unknown>(options: AgentOptions): Promise<Agen
   const usage: Usage = { inputTokens: 0, outputTokens: 0 };
 
   for (let step = 1; step <= maxSteps; step++) {
-    const response = await model.complete({ system, messages, tools: specs });
+    // Guardrail: an agent that must return a result gets one last chance to do it.
+    // On the final step it is told so, and submit_result is the only tool it can call.
+    const lastChance = output !== undefined && step === maxSteps && maxSteps > 1;
+    const response = await model.complete({
+      system: lastChance
+        ? `${system}\n\nThis is your last step. Call ${SUBMIT_TOOL} now with the best result you have, and say in it what you could not finish.`
+        : system,
+      messages,
+      tools: lastChance ? specs.filter((s) => s.name === SUBMIT_TOOL) : specs,
+    });
     usage.inputTokens += response.usage.inputTokens;
     usage.outputTokens += response.usage.outputTokens;
 

@@ -66,3 +66,17 @@ test("stops at maxSteps when the model never finishes", async () => {
   expect(result.status).toBe("max_steps");
   expect(model.requests).toHaveLength(3);
 });
+
+test("on the last step, an agent that owes a result can only submit it", async () => {
+  const model = createMockClient([
+    { toolCalls: [{ name: "echo", input: { text: "1" } }] },
+    { toolCalls: [{ name: "echo", input: { text: "2" } }] },
+    { toolCalls: [{ name: SUBMIT_TOOL, input: { verdict: "pass" } }] },
+  ]);
+  const result = await runAgent<{ verdict: string }>({ model, system: "s", task: "t", tools: [echo], output: { schema }, maxSteps: 3 });
+
+  expect(result.status).toBe("done");
+  expect(model.requests[1].tools.map((t) => t.name)).toEqual(["echo", SUBMIT_TOOL]);
+  expect(model.requests[2].tools.map((t) => t.name)).toEqual([SUBMIT_TOOL]);
+  expect(model.requests[2].system).toContain("This is your last step");
+});

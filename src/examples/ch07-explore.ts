@@ -56,11 +56,14 @@ const notesSchema: JsonSchema = {
 const system = `You are an exploratory tester. You have a browser, a charter and a time box.
 Explore the application at ${BOOKING_URL} the way a skilled human tester would:
 - Take a snapshot to see the page, then act on elements by their reference from the snapshot.
+- Element references go stale when the page changes. After every action that changes the page
+  (submitting the form, a new row in the table), take a fresh snapshot before using references again.
 - Vary one thing at a time and observe the result after every action (snapshot, status messages, console errors).
 - Follow surprises. When something looks odd, try to reproduce it before you report it.
 - Stay inside the charter. Note other interesting things as questions, do not chase them.
 - Report only what you observed. Every bug needs steps that reproduce it.
-When the charter is covered or you are close to your step budget, call submit_result with your session notes.`;
+You have a budget of about 30 steps. Spend no more than 25 exploring, then call submit_result with your
+session notes. Notes from a shorter session are worth far more than no notes at all.`;
 
 // Exploration needs a real model: a scripted one cannot react to what it sees.
 let model;
