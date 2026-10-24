@@ -3,7 +3,7 @@ import type { JsonSchema } from "../llm/types.ts";
 // A deliberately small JSON Schema checker: enough to catch the mistakes models actually make
 // (missing fields, wrong types, values outside an enum) without pulling in a dependency.
 // Supports: type (object, array, string, number, integer, boolean), properties, required,
-// items, enum, minItems.
+// items, enum, minItems, minimum, maximum.
 
 type Schema = Record<string, unknown>;
 
@@ -29,6 +29,15 @@ function check(schema: Schema, value: unknown, path: string, errors: string[]): 
 
   if (Array.isArray(schema.enum) && !schema.enum.includes(value)) {
     errors.push(`${path || "value"} should be one of ${schema.enum.map((v) => JSON.stringify(v)).join(", ")}`);
+  }
+
+  if (typeof value === "number") {
+    if (typeof schema.minimum === "number" && value < schema.minimum) {
+      errors.push(`${path || "value"} should be at least ${schema.minimum}`);
+    }
+    if (typeof schema.maximum === "number" && value > schema.maximum) {
+      errors.push(`${path || "value"} should be at most ${schema.maximum}`);
+    }
   }
 
   if (expected === "object" && value && typeof value === "object") {

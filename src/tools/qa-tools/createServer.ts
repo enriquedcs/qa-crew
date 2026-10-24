@@ -2,6 +2,7 @@ import { readFile, readdir } from "node:fs/promises";
 import path from "node:path";
 import { McpServer } from "@modelcontextprotocol/server";
 import * as z from "zod/v4";
+import { searchKnowledge } from "../../knowledge/search.ts";
 import { loadRequirements } from "../../specs/requirements.ts";
 import { buildTraceReport, findRequirementTags } from "../../specs/trace.ts";
 import { assertTestEnvironment, resolveInside } from "./safety.ts";
@@ -22,6 +23,8 @@ export interface QaToolsOptions {
   readmePath?: string;
   /** Project root that holds specs/ (Spec Kit) and odd/tasks/ (ODD feature documents). */
   projectRoot?: string;
+  /** Folder of team knowledge (past bugs, notes) that search_knowledge reads. */
+  knowledgeDir?: string;
 }
 
 export function optionsFromEnv(env: Record<string, string | undefined> = process.env): QaToolsOptions {
@@ -32,6 +35,7 @@ export function optionsFromEnv(env: Record<string, string | undefined> = process
     testsDir: env.QA_TOOLS_TESTS_DIR ?? "tests",
     readmePath: env.QA_TOOLS_README ?? "README.md",
     projectRoot: env.QA_TOOLS_PROJECT_ROOT ?? ".",
+    knowledgeDir: env.QA_TOOLS_KNOWLEDGE_DIR ?? "knowledge",
   };
 }
 
@@ -51,6 +55,7 @@ export function createQaToolsServer(options: QaToolsOptions): McpServer {
   const testsDir = path.resolve(options.testsDir ?? "tests");
   const readmePath = path.resolve(options.readmePath ?? "README.md");
   const projectRoot = path.resolve(options.projectRoot ?? ".");
+  const knowledgeDir = path.resolve(options.knowledgeDir ?? "knowledge");
 
   async function api(pathname: string, init?: RequestInit): Promise<{ status: number; body: unknown }> {
     const res = await fetch(new URL(pathname, base), {
@@ -67,7 +72,7 @@ export function createQaToolsServer(options: QaToolsOptions): McpServer {
     return { status: res.status, body };
   }
 
-  const server = new McpServer({ name: "qa-tools", version: "0.3.0" });
+  const server = new McpServer({ name: "qa-tools", version: "0.5.0" });
   const readOnly = { readOnlyHint: true, openWorldHint: false } as const;
 
   // ---------- Read-only tools: safe to call as often as the agent likes ----------
@@ -198,6 +203,26 @@ export function createQaToolsServer(options: QaToolsOptions): McpServer {
     async () => {
       const docs = await loadRequirements(projectRoot);
       return json(buildTraceReport(docs, await findRequirementTags(testsDir)));
+    },
+  );
+
+  server.registerTool(
+    "search_knowledge",
+    {
+      title: "Search team knowledge",
+      description:
+        "Search the team's past bug reports and notes. Use specific words from the area you are analyzing, " +
+        "for example 'double booking concurrent' or 'check-in today time zone'. Returns the best matching sections.",
+      inputSchema: z.object({
+        query: z.string().min(2).describe("Words to look for"),
+        limit: z.number().int().min(1).max(10).optional().describe("How many results (default 3)"),
+      }),
+      annotations: readOnly,
+    },
+    async ({ query, limit }) => {
+      const hits = await searchKnowledge(knowledgeDir, query, limit ?? 3);
+      if (hits.length === 0) return { content: [{ type: "text", text: `Nothing in the team knowledge matches "${query}".` }] };
+      return json(hits);
     },
   );
 

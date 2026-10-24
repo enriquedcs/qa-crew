@@ -6,3 +6,6 @@ blob-report/
 .env.*
 !.env.example
 .DS_Store
+
+# Agent output (risk maps, test plans, run reports)
+out/
