@@ -10,6 +10,7 @@
   },
   "scripts": {
     "app": "tsx src/app/server.ts",
+    "ch02": "tsx src/examples/ch02-first-agent.ts",
     "test": "playwright test",
     "test:report": "playwright show-report",
     "typecheck": "tsc --noEmit"

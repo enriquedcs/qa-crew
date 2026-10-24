@@ -1,0 +1,68 @@
+import { test, expect } from "@playwright/test";
+import { runAgent, SUBMIT_TOOL, type Tool } from "../../src/agent/runAgent.ts";
+import { createMockClient } from "../../src/llm/index.ts";
+
+// Agents are code too, so they get tests. These run without any API key:
+// a scripted mock model plays the role of the LLM.
+
+const echo: Tool = {
+  name: "echo",
+  description: "Echo the input back.",
+  inputSchema: { type: "object", properties: { text: { type: "string" } }, required: ["text"] },
+  run: async (input) => `echo: ${input.text}`,
+};
+
+const schema = {
+  type: "object" as const,
+  properties: { verdict: { type: "string", enum: ["pass", "fail"] } },
+  required: ["verdict"],
+};
+
+test("returns plain text when no output schema is required", async () => {
+  const model = createMockClient([{ text: "All good." }]);
+  const result = await runAgent({ model, system: "s", task: "t" });
+  expect(result.status).toBe("done");
+  expect(result.text).toBe("All good.");
+  expect(result.steps).toBe(1);
+});
+
+test("runs a tool and feeds the result back to the model", async () => {
+  const model = createMockClient([
+    { toolCalls: [{ name: "echo", input: { text: "hi" } }] },
+    { text: "Done." },
+  ]);
+  const result = await runAgent({ model, system: "s", task: "t", tools: [echo] });
+  expect(result.status).toBe("done");
+  const second = model.requests[1].messages.at(-1);
+  expect(second).toMatchObject({ role: "tool", name: "echo", content: "echo: hi" });
+});
+
+test("reports tool errors to the model instead of crashing", async () => {
+  const broken: Tool = { ...echo, name: "broken", run: async () => { throw new Error("boom"); } };
+  const model = createMockClient([
+    { toolCalls: [{ name: "broken", input: {} }] },
+    { text: "Recovered." },
+  ]);
+  const result = await runAgent({ model, system: "s", task: "t", tools: [broken] });
+  expect(result.status).toBe("done");
+  expect(model.requests[1].messages.at(-1)).toMatchObject({ role: "tool", isError: true, content: "boom" });
+});
+
+test("rejects an invalid result and accepts the corrected one", async () => {
+  const model = createMockClient([
+    { toolCalls: [{ name: SUBMIT_TOOL, input: { verdict: "maybe" } }] },
+    { toolCalls: [{ name: SUBMIT_TOOL, input: { verdict: "pass" } }] },
+  ]);
+  const result = await runAgent<{ verdict: string }>({ model, system: "s", task: "t", output: { schema } });
+  expect(result.status).toBe("done");
+  expect(result.output).toEqual({ verdict: "pass" });
+  expect(result.steps).toBe(2);
+});
+
+test("stops at maxSteps when the model never finishes", async () => {
+  const loop = { toolCalls: [{ name: "echo", input: { text: "again" } }] };
+  const model = createMockClient([loop, loop, loop, loop]);
+  const result = await runAgent({ model, system: "s", task: "t", tools: [echo], maxSteps: 3 });
+  expect(result.status).toBe("max_steps");
+  expect(model.requests).toHaveLength(3);
+});
