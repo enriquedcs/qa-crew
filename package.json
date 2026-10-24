@@ -1,0 +1,23 @@
+{
+  "name": "qa-crew",
+  "version": "0.1.0",
+  "description": "Companion code for the book Agentic QA: a booking app and a team of AI testing agents.",
+  "private": true,
+  "type": "module",
+  "license": "MIT",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "app": "tsx src/app/server.ts",
+    "test": "playwright test",
+    "test:report": "playwright show-report",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.49.1",
+    "@types/node": "^22.10.2",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.2"
+  }
+}
