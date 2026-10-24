@@ -254,7 +254,9 @@ export function createQaToolsServer(options: QaToolsOptions): McpServer {
       annotations: readOnly,
     },
     async ({ query, limit }) => {
-      const hits = await searchKnowledge(issuesDir, query, limit ?? 3);
+      // One result per issue: the best-matching section of each file.
+      const all = await searchKnowledge(issuesDir, query, 50);
+      const hits = all.filter((h, i) => all.findIndex((o) => o.file === h.file) === i).slice(0, limit ?? 3);
       if (hits.length === 0) return { content: [{ type: "text", text: `No issue matches "${query}".` }] };
       return json(hits.map(({ file, title, score, text }) => ({ id: title.split(":")[0], file, title, score, text })));
     },
