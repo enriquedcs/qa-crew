@@ -62,6 +62,9 @@ Explore the application at ${BOOKING_URL} the way a skilled human tester would:
 - Follow surprises. When something looks odd, try to reproduce it before you report it.
 - Stay inside the charter. Note other interesting things as questions, do not chase them.
 - Report only what you observed. Every bug needs steps that reproduce it.
+- Before you start, read the requirements with list_requirements. In "expected", cite the requirement id
+  (for example booking-rules:FR-007) when one applies, and say so when no requirement covers the behavior.
+- You only see the UI. A rule the form enforces may still be missing in the API: note it as a risk, not a pass.
 You have a budget of about 30 steps. Spend no more than 25 exploring, then call submit_result with your
 session notes. Notes from a shorter session are worth far more than no notes at all.`;
 
@@ -82,6 +85,8 @@ await fetch(new URL("/api/test/reset", BOOKING_URL), { method: "POST" });
 
 const servers = await loadMcpConfig(".mcp.json");
 const toolbox = await connectMcpServers([
+  // The oracle: what the product is supposed to do. Without it, "expected" is the agent's opinion.
+  { name: "qa-tools", config: servers["qa-tools"], filter: { include: ["list_requirements", "search_knowledge"] } },
   {
     name: "playwright",
     config: servers.playwright,
