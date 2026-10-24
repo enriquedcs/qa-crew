@@ -98,3 +98,70 @@ export const riskMapSchema: JsonSchema = {
   },
   required: ["feature", "summary", "risks", "questions", "missingRequirements"],
 };
+
+// ---------------------------------------------------------------------------
+// Designer -> Executor: the test plan
+// ---------------------------------------------------------------------------
+
+export const TECHNIQUES = [
+  "equivalence-partitioning",
+  "boundary-values",
+  "decision-table",
+  "state-transition",
+  "pairwise",
+  "error-guessing",
+] as const;
+
+export type Technique = (typeof TECHNIQUES)[number];
+
+export interface TestCase {
+  id: string; // TC-01, TC-02...
+  title: string;
+  riskIds: string[]; // R1, R2... from the risk map
+  requirementIds: string[]; // booking-rules:FR-005...
+  technique: Technique;
+  layer: "api" | "ui";
+  priority: "p1" | "p2" | "p3";
+  preconditions: string[];
+  steps: string[];
+  /** The input that makes this case different from its neighbors. */
+  data: Record<string, unknown>;
+  /** The oracle: exactly what must be observed for the test to pass. */
+  expected: string;
+}
+
+export interface TestPlan {
+  feature: string;
+  cases: TestCase[];
+  /** Filled in by code: what curation removed, and why. */
+  dropped?: { id: string; title: string; reason: string }[];
+}
+
+export const testPlanSchema: JsonSchema = {
+  type: "object",
+  properties: {
+    feature: { type: "string" },
+    cases: {
+      type: "array",
+      minItems: 1,
+      items: {
+        type: "object",
+        properties: {
+          id: { type: "string", description: "TC-01, TC-02, ..." },
+          title: { type: "string", description: "What the test proves, in one sentence." },
+          riskIds: { type: "array", minItems: 1, items: { type: "string" }, description: "Risk ids from the risk map." },
+          requirementIds: { type: "array", items: { type: "string" } },
+          technique: { type: "string", enum: [...TECHNIQUES] },
+          layer: { type: "string", enum: ["api", "ui"] },
+          priority: { type: "string", enum: ["p1", "p2", "p3"] },
+          preconditions: { type: "array", items: { type: "string" } },
+          steps: { type: "array", minItems: 1, items: { type: "string" } },
+          data: { type: "object", properties: {}, description: "The inputs, as concrete values." },
+          expected: { type: "string", description: "The oracle: status, message, and state that must or must not change." },
+        },
+        required: ["id", "title", "riskIds", "requirementIds", "technique", "layer", "priority", "preconditions", "steps", "data", "expected"],
+      },
+    },
+  },
+  required: ["feature", "cases"],
+};
