@@ -1,6 +1,6 @@
 {
   "name": "qa-crew",
-  "version": "0.1.0",
+  "version": "0.3.0",
   "description": "Companion code for the book Agentic QA: a booking app and a team of AI testing agents.",
   "private": true,
   "type": "module",
@@ -10,10 +10,17 @@
   },
   "scripts": {
     "app": "tsx src/app/server.ts",
+    "qa-tools": "tsx src/tools/qa-tools/main.ts",
     "ch02": "tsx src/examples/ch02-first-agent.ts",
+    "ch03": "tsx src/examples/ch03-agent-with-mcp.ts",
     "test": "playwright test",
     "test:report": "playwright show-report",
     "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/client": "^2.4.0",
+    "@modelcontextprotocol/server": "^2.4.0",
+    "zod": "^4.2.0"
   },
   "devDependencies": {
     "@playwright/test": "^1.49.1",

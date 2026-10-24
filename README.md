@@ -36,6 +36,10 @@ npm test
 |---|---|
 | `src/app/` | The booking app: a REST API and a single-page UI, with no runtime dependencies |
 | `tests/baseline/` | A small hand-written Playwright suite — the "before" picture used in Chapter 1 |
+| `src/llm/`, `src/agent/` | The vendor-neutral model layer and the `runAgent()` loop (Chapter 2) |
+| `src/tools/qa-tools/` | The `qa-tools` MCP server: the booking API and the test suite as tools (Chapter 3) |
+| `src/mcp/` | The bridge that turns MCP tools into agent tools (Chapter 3) |
+| `.mcp.json` | MCP servers for this project, shared by the agents and by Claude Code |
 
 More folders appear as you progress through the book (`src/agents/`, `src/tools/`, `src/crew/` and so on).
 
@@ -50,6 +54,18 @@ More folders appear as you progress through the book (`src/agents/`, `src/tools/
 | `POST` | `/api/bookings` | Create a booking: `{ guestName, roomId, guests, checkIn, checkOut }` with dates as `YYYY-MM-DD` |
 | `DELETE` | `/api/bookings/:id` | Cancel a booking |
 | `POST` | `/api/test/reset` | Test-only: reset all data |
+
+## Using qa-tools from your coding assistant
+
+`qa-tools` is a standard MCP server, so any MCP host can use it. Claude Code picks up `.mcp.json` automatically. For other hosts, register the same command, `npx tsx src/tools/qa-tools/main.ts`, run from the repository root (Chapter 3 shows the config for Cursor, VS Code with Copilot and Codex).
+
+The server only exposes read-only tools unless `QA_TOOLS_ALLOW_WRITES=true`, and it refuses to start if `BOOKING_URL` points anywhere other than localhost or a host listed in `QA_TOOLS_ALLOWED_HOSTS`.
+
+To explore the tools by hand:
+
+```bash
+npx @modelcontextprotocol/inspector npx tsx src/tools/qa-tools/main.ts
+```
 
 ## Following the book
 
