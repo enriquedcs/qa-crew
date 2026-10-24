@@ -22,6 +22,9 @@ How you work:
 4. If the test fails, decide WHY before changing anything:
    - The test is wrong (bad setup, wrong field name, wrong locator, wrong import): fix the test and run again.
    - The test is right and the application does not do what the case expects: STOP. That is a finding, not a problem to fix.
+   Make sure each request can only fail for the reason the case is about. When a test sends several requests,
+   give each one its own room or dates that do not overlap, and for a rejection assert the error message as well
+   as the status. A 400 for the wrong reason is a pass for the wrong reason.
 5. Never weaken the oracle to make a test pass. Do not change the expected status, message or state,
    do not remove assertions, do not catch errors, do not skip the test. If the app is wrong, the test must stay red.
 
@@ -29,7 +32,8 @@ Finish with submit_result:
 - "passed" when the test passes and asserts the full oracle.
 - "failing-suspected-product-bug" when the test is correct and fails on the oracle. Put the failing assertion,
   with expected and received values, in evidence.
-- "blocked" when you could not make the test run correctly within your attempts. Explain what is missing.`;
+- "blocked" when you could not make the test run correctly within your attempts, or when the expected result
+  depends on a decision nobody has made. Do not guess an answer to an open question. Explain what is missing.`;
 
 export interface ExecutorOptions {
   model: ModelClient;
@@ -72,6 +76,21 @@ export function reconcile(report: ExecutionReport, rerun: RunSummary): { verifie
 
 export async function runExecutor(options: ExecutorOptions): Promise<ExecutorResult> {
   const { model, tools, testCase, maxSteps = 14, onEvent, verify = true, runnerAppPort = 3200 } = options;
+
+  // A case that waits on an open question is not automated: there is no oracle to automate yet.
+  if (testCase.blockedBy) {
+    const report: ExecutionReport = {
+      caseId: testCase.id,
+      file: "",
+      outcome: "blocked",
+      attempts: 0,
+      evidence: "",
+      notes: `Not automated: the expected result depends on an open question. ${testCase.blockedBy}`,
+      verified: true,
+      verification: "Blocked by the test plan.",
+    };
+    return { report, run: { status: "done", output: report, steps: 0, usage: { inputTokens: 0, outputTokens: 0 }, transcript: [] } };
+  }
 
   const run = await runAgent<ExecutionReport>({
     model,

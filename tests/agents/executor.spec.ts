@@ -123,3 +123,16 @@ test("TC-02 capacity", { tag: ["@TC-02", "@booking-rules:FR-005"] }, async ({ bo
     expect(report?.verification).toContain("Expected: 400");
   });
 });
+
+test("a case blocked by an open question is reported as blocked without calling the model", async () => {
+  const model = createMockClient([]);
+  const testCase: TestCase = {
+    id: "TC-08", title: "today in the hotel's time zone", riskIds: ["R3"], requirementIds: ["booking-rules:FR-007"],
+    technique: "boundary-values", layer: "api", priority: "p1", preconditions: [], steps: ["s"], data: {}, expected: "?",
+    blockedBy: "Whose today counts: the hotel's, the guest's or UTC?",
+  };
+  const { report } = await runExecutor({ model, tools: [], testCase });
+  expect(report).toMatchObject({ outcome: "blocked", attempts: 0 });
+  expect(report?.notes).toContain("Whose today counts");
+  expect(model.requests).toHaveLength(0);
+});

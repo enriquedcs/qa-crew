@@ -27,6 +27,8 @@ Rules for every case:
   Use boundary_values for limits, relative_dates to reason about dates, and safe_guest_names for people.
 - Choose the cheapest layer that can catch the bug: "api" unless the risk is about what the user sees or does.
 - p1 = would block a release, p2 = should be fixed soon, p3 = nice to know.
+- If the expected result depends on an open question, still design the case, but set blockedBy to the question.
+  Blocked cases are not automated until someone answers it.
 
 Quality over quantity. A high risk deserves a few sharp cases; a low risk deserves one, or none.
 When you are done, call submit_result with the test plan.`;
@@ -82,7 +84,8 @@ export function renderTestPlan(plan: TestPlan, uncovered: Risk[] = []): string {
   const lines = [`# Test plan: ${plan.feature}`, "", `${plan.cases.length} cases.`, ""];
   lines.push("| Case | Risk | Technique | Layer | Priority | Expected |", "|---|---|---|---|---|---|");
   for (const c of plan.cases) {
-    lines.push(`| **${c.id}** ${c.title} | ${c.riskIds.join(", ")} | ${c.technique} | ${c.layer} | ${c.priority} | ${c.expected} |`);
+    const blocked = c.blockedBy ? ` **Blocked:** ${c.blockedBy}` : "";
+    lines.push(`| **${c.id}** ${c.title} | ${c.riskIds.join(", ")} | ${c.technique} | ${c.layer} | ${c.priority} | ${c.expected}${blocked} |`);
   }
   if (uncovered.length > 0) {
     lines.push("", "## Risks with no test case", "");

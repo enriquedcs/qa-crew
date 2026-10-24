@@ -128,6 +128,8 @@ export interface TestCase {
   data: Record<string, unknown>;
   /** The oracle: exactly what must be observed for the test to pass. */
   expected: string;
+  /** Set when the oracle depends on an unanswered question. Blocked cases are not automated. */
+  blockedBy?: string;
 }
 
 export interface TestPlan {
@@ -158,6 +160,7 @@ export const testPlanSchema: JsonSchema = {
           steps: { type: "array", minItems: 1, items: { type: "string" } },
           data: { type: "object", properties: {}, description: "The inputs, as concrete values." },
           expected: { type: "string", description: "The oracle: status, message, and state that must or must not change." },
+          blockedBy: { type: "string", description: "Only if the expected result depends on an open question: the question. Leave out otherwise." },
         },
         required: ["id", "title", "riskIds", "requirementIds", "technique", "layer", "priority", "preconditions", "steps", "data", "expected"],
       },
