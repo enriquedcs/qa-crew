@@ -1,7 +1,7 @@
 import { createServer, type Server } from "node:http";
 import type { AddressInfo } from "node:net";
 import { expect, test } from "@playwright/test";
-import { fetchWithRetry } from "../../src/llm/http.ts";
+import { describeApiError, fetchWithRetry } from "../../src/llm/http.ts";
 import { createOpenAICompatibleClient } from "../../src/llm/openai-compatible.ts";
 
 // A tiny local server that answers with a scripted sequence of statuses.
@@ -80,5 +80,27 @@ test("the model client recovers from a 503 on its own", async () => {
   } finally {
     delete process.env.QA_MODEL_MAX_RETRIES;
     await server.close();
+  }
+});
+
+test("a daily quota (429 asking to wait hours) fails at once with a clear message", async () => {
+  const body = JSON.stringify([{ error: { code: 429, status: "RESOURCE_EXHAUSTED", details: [{ "@type": "type.googleapis.com/google.rpc.RetryInfo", retryDelay: "18595s" }] } }]);
+  let hits = 0;
+  const server = createServer((_req, res) => {
+    hits++;
+    res.writeHead(429, { "content-type": "application/json" });
+    res.end(body);
+  });
+  await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
+  const { port } = server.address() as AddressInfo;
+  try {
+    const res = await fetchWithRetry(`http://127.0.0.1:${port}`, { method: "POST" }, { retries: 4, ...noWait });
+    expect(res.status).toBe(429);
+    expect(hits).toBe(1);
+    const message = await describeApiError("gemini", res);
+    expect(message).toContain("RESOURCE_EXHAUSTED");
+    expect(message).toContain("Quota exhausted: the provider asks to wait about 5h 10m");
+  } finally {
+    await new Promise<void>((resolve) => server.close(() => resolve()));
   }
 });

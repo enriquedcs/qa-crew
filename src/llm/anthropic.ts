@@ -1,4 +1,4 @@
-import { fetchWithRetry } from "./http.ts";
+import { describeApiError, fetchWithRetry } from "./http.ts";
 import { DEFAULT_MAX_TOKENS, type CompletionRequest, type CompletionResponse, type Message, type ModelClient, type ToolCall } from "./types.ts";
 
 // Adapter for the Anthropic Messages API (Claude models).
@@ -71,7 +71,7 @@ export function createAnthropicClient(options: AnthropicOptions): ModelClient {
           tools: request.tools.map((t) => ({ name: t.name, description: t.description, input_schema: t.inputSchema })),
         }),
       });
-      if (!res.ok) throw new Error(`Anthropic API error ${res.status}: ${await res.text()}`);
+      if (!res.ok) throw new Error(await describeApiError("Anthropic", res));
       const data = (await res.json()) as {
         content: ContentBlock[];
         stop_reason?: string;

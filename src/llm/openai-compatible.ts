@@ -1,4 +1,4 @@
-import { fetchWithRetry } from "./http.ts";
+import { describeApiError, fetchWithRetry } from "./http.ts";
 import { DEFAULT_MAX_TOKENS, type CompletionRequest, type CompletionResponse, type Message, type ModelClient, type ToolCall } from "./types.ts";
 
 // Adapter for any API that speaks the OpenAI Chat Completions format:
@@ -87,7 +87,7 @@ export function createOpenAICompatibleClient(options: OpenAICompatibleOptions): 
       }
 
       const res = await fetchWithRetry(`${baseUrl}/chat/completions`, { method: "POST", headers, body: JSON.stringify(body) });
-      if (!res.ok) throw new Error(`${provider} API error ${res.status}: ${await res.text()}`);
+      if (!res.ok) throw new Error(await describeApiError(provider, res));
       const data = (await res.json()) as {
         choices: {
           finish_reason?: string;
