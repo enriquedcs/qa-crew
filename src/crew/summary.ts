@@ -44,7 +44,7 @@ export async function decisionsFor(store: RunStore, run: CrewRun): Promise<Decis
     out.push({ kind: "investigate", text: `The run stopped at its token budget. Continue with a larger one: \`npm run crew -- continue --max-tokens ${run.budget.maxTokens * 2}\`, or stop here.` });
   }
   if (run.status === "failed") {
-    out.push({ kind: "investigate", text: `${run.error ?? "A stage failed."} Fix the cause, then \`npm run crew -- continue\`: finished stages are not repeated.` });
+    out.push({ kind: "investigate", text: `${(run.error ?? "A stage failed").replace(/\.?$/, ".")} Fix the cause, then \`npm run crew -- continue\`: finished stages are not repeated.` });
   }
 
   const plan = await readJson<TestPlan>(dir, "test-plan.json");
