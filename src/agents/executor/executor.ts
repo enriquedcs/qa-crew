@@ -43,6 +43,8 @@ export interface ExecutorOptions {
   onEvent?: (event: AgentEvent) => void;
   /** Re-run the test independently and compare with the agent's claim. On by default. */
   verify?: boolean;
+  /** A reviewer's request for changes to the test written earlier (Chapter 10). */
+  revision?: string;
   runnerAppPort?: number;
 }
 
@@ -75,7 +77,7 @@ export function reconcile(report: ExecutionReport, rerun: RunSummary): { verifie
 }
 
 export async function runExecutor(options: ExecutorOptions): Promise<ExecutorResult> {
-  const { model, tools, testCase, maxSteps = 14, onEvent, verify = true, runnerAppPort = 3200 } = options;
+  const { model, tools, testCase, maxSteps = 14, onEvent, verify = true, runnerAppPort = 3200, revision } = options;
 
   // A case that waits on an open question is not automated: there is no oracle to automate yet.
   if (testCase.blockedBy) {
@@ -95,7 +97,7 @@ export async function runExecutor(options: ExecutorOptions): Promise<ExecutorRes
   const run = await runAgent<ExecutionReport>({
     model,
     system: EXECUTOR_SYSTEM,
-    task: `Automate this test case:\n${JSON.stringify(testCase, null, 2)}`,
+    task: `Automate this test case:\n${JSON.stringify(testCase, null, 2)}${revision ? `\n\n${revision}` : ""}`,
     tools,
     output: { schema: executionReportSchema, description: "Submit the execution report for this case. Call this exactly once." },
     maxSteps,

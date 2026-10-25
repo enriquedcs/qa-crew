@@ -1,13 +1,13 @@
 import { existsSync } from "node:fs";
 import { readFile } from "node:fs/promises";
 import path from "node:path";
-import type { ExecutionReport, Risk, RiskMap, TestPlan, TriageItem } from "./contracts.ts";
+import type { ExecutionReport, Review, Risk, RiskMap, TestPlan, TriageItem } from "./contracts.ts";
 import { changedSinceApproval, runDir, type CrewRun, type RunStore } from "./orchestrator.ts";
 
 // The run summary is the test lead's inbox: what the crew did, what it cost,
 // and every decision that is still yours to make.
 
-const GATE_LABEL: Record<string, string> = { analyze: "the risk map", design: "the test plan" };
+const GATE_LABEL: Record<string, string> = { analyze: "the risk map", design: "the test plan", review: "the reviewed tests" };
 
 async function readJson<T>(dir: string, name: string): Promise<T | undefined> {
   const file = path.join(dir, name);
@@ -51,6 +51,8 @@ export async function decisionsFor(store: RunStore, run: CrewRun): Promise<Decis
   const uncovered = (await readJson<Risk[]>(dir, "uncovered-risks.json")) ?? [];
   const reports = (await readJson<ExecutionReport[]>(dir, "execution.json")) ?? [];
   const triage = (await readJson<TriageItem[]>(dir, "triage.json")) ?? [];
+  const reviews = (await readJson<Review[]>(dir, "reviews.json")) ?? [];
+  const lastReview = new Map(reviews.map((r) => [r.caseId, r]));
 
   for (const c of plan?.cases?.filter((c) => c.blockedBy) ?? []) {
     out.push({ kind: "answer-question", text: `${c.id} waits on an open question: ${c.blockedBy}` });
@@ -69,8 +71,18 @@ export async function decisionsFor(store: RunStore, run: CrewRun): Promise<Decis
   for (const r of reports.filter((r) => r.verified === false)) {
     out.push({ kind: "unverified", text: `${r.caseId}: the re-run did not confirm "${r.outcome}". ${r.verification ?? ""}` });
   }
+  for (const r of lastReview.values()) {
+    if (r.verdict === "request-changes") {
+      out.push({ kind: "investigate", text: `${r.caseId}: the Reviewer still requests changes after ${r.round ?? 1} round(s). Read reviews.md and decide: ${r.summary}` });
+    } else if (r.warnings?.length) {
+      out.push({ kind: "investigate", text: `${r.caseId}: the review was approved with warnings: ${r.warnings.join(" ")}` });
+    }
+  }
   for (const r of reports.filter((r) => r.outcome === "passed" && r.verified)) {
-    out.push({ kind: "promote-test", text: `${r.caseId} passed and was verified: read tests/generated/${r.file} and promote it if it is worth keeping.` });
+    const review = lastReview.get(r.caseId);
+    if (review && review.verdict !== "approve") continue;
+    const reviewed = review ? ", verified and approved by the Reviewer" : " and was verified (not reviewed)";
+    out.push({ kind: "promote-test", text: `${r.caseId} passed${reviewed}: read tests/generated/${r.file} and promote it if it is worth keeping.` });
   }
   return out;
 }

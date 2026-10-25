@@ -75,7 +75,10 @@ export function scriptedTriager(): MockTurn[] {
   ];
 }
 
-/** The scripted Triager for a crew run (Chapter 9): the Executor's one real finding, TC-02. */
+/**
+ * The scripted Triager for a crew run, in the order of the Executor's findings:
+ * TC-02 (already reported as ISSUE-0031) and, once the Reviewer has caught the wrong-reason pass, TC-05.
+ */
 export function scriptedCrewTriager(): MockTurn[] {
   return [
     { text: "A wrong status on a capacity check. Is it already in the tracker?", toolCalls: [{ name: "search_issues", input: { query: "API capacity guests" } }] },
@@ -88,6 +91,28 @@ export function scriptedCrewTriager(): MockTurn[] {
           rationale: "Every run fails the same way: the API returns 201 for 3 guests in room r2, whose capacity is 2. FR-005 requires the API to enforce capacity. ISSUE-0031 already reports this and is still open, so it should be linked, not filed again.",
           evidence: ["3 of 3 runs: Expected 400, Received 201.", "FR-005: capacity must be enforced in the UI and the API.", "ISSUE-0031 (open): The API accepts more guests than the room's capacity."],
           duplicateOf: "ISSUE-0031",
+        },
+      }],
+    },
+    { text: "A stay that started yesterday was accepted. Is it already reported?", toolCalls: [{ name: "search_issues", input: { query: "past check-in date accepted" } }, { name: "list_requirements", input: { key: "booking-rules" } }] },
+    {
+      toolCalls: [{
+        name: "submit_result",
+        input: {
+          classification: "product-bug",
+          confidence: "high",
+          rationale: "Every run fails on the status: the API returns 201 for a stay that started yesterday, and the request is the only booking in the test, so no other rule is involved. FR-007 says check-in must not be in the past. Nothing in the tracker mentions past dates.",
+          evidence: ["3 of 3 runs: Expected 400, Received 201.", "FR-007: Check-in MUST NOT be in the past.", "No issue in the tracker mentions past check-in dates.", "The Reviewer's first-round finding: the earlier version of this test passed only because of the overlap rule."],
+          bugReport: {
+            title: "Bookings can be made for stays that have already started",
+            severity: "high",
+            summary: "POST /api/bookings accepts a check-in date in the past and stores the booking. A test written earlier passed only because another booking in the same room triggered the overlap rule.",
+            stepsToReproduce: ["Reset the test data", "POST /api/bookings with { guestName: 'Ana Prueba', roomId: 'r2', guests: 1, checkIn: <yesterday>, checkOut: <tomorrow> }", "GET /api/bookings"],
+            expected: "400 Bad Request and nothing stored (booking-rules:FR-007).",
+            actual: "201 Created; the booking is stored.",
+            requirementIds: ["booking-rules:FR-007"],
+            suspectedArea: "validateBooking() in src/app/validation.ts: it checks the date format and the order of the dates, but never compares check-in with today.",
+          },
         },
       }],
     },

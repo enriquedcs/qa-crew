@@ -1,3 +1,4 @@
+import { readFile } from "node:fs/promises";
 import type { AgentEvent } from "../agent/runAgent.ts";
 import { runAnalyst } from "../agents/analyst/analyst.ts";
 import { risksForDesign } from "../agents/analyst/curate.ts";
@@ -6,7 +7,9 @@ import { renderRiskMap } from "../agents/analyst/render.ts";
 import { scriptedDesigner } from "../agents/designer/demo.ts";
 import { renderTestPlan, runDesigner } from "../agents/designer/designer.ts";
 import { testDataTools } from "../agents/designer/testData.ts";
-import { SCRIPTED_EXECUTOR_CASES, scriptedExecutor } from "../agents/executor/demo.ts";
+import { SCRIPTED_CREW_CASES, scriptedExecutor, scriptedExecutorRevision } from "../agents/executor/demo.ts";
+import { scriptedReviewer } from "../agents/reviewer/demo.ts";
+import { renderReviews, revisionRequest, runReviewer } from "../agents/reviewer/reviewer.ts";
 import { runExecutor } from "../agents/executor/executor.ts";
 import { modelForRole, printEvents } from "../agents/shared.ts";
 import { scriptedCrewTriager } from "../agents/triager/demo.ts";
@@ -14,7 +17,7 @@ import { collectEvidence, failuresFromExecution } from "../agents/triager/eviden
 import { renderBugReport, renderTriage, runTriager } from "../agents/triager/triager.ts";
 import type { Usage } from "../llm/types.ts";
 import { connectMcpServers, loadMcpConfig, type McpToolFilter } from "../mcp/connect.ts";
-import type { ExecutionReport, RiskMap, TestPlan, TriageItem } from "./contracts.ts";
+import type { ExecutionReport, Review, RiskMap, TestPlan, TriageItem } from "./contracts.ts";
 import type { Stage } from "./orchestrator.ts";
 
 // The four stages of a QA Crew run. Each stage is one agent with its own tools (least privilege),
@@ -23,8 +26,10 @@ import type { Stage } from "./orchestrator.ts";
 export interface CrewStageOptions {
   /** Print every agent step. Off in tests. */
   verbose?: boolean;
-  /** Which test cases the Executor automates. Default: the p1 cases (the scripted demo: TC-02 and TC-08). */
+  /** Which test cases the Executor automates. Default: the p1 cases (the scripted demo: TC-02, TC-05 and TC-08). */
   caseIds?: string[];
+  /** How many times a test may be revised after a review asks for changes. Default 1. */
+  reviewRounds?: number;
   env?: NodeJS.ProcessEnv;
 }
 
@@ -119,13 +124,13 @@ export function crewStages(options: CrewStageOptions = {}): Stage[] {
     async run(ctx) {
       if (!ctx.exists("test-plan.json")) throw new Error("no test-plan.json in the run folder");
       const plan = await ctx.readJson<TestPlan>("test-plan.json");
-      const wanted = options.caseIds ?? (mock ? SCRIPTED_EXECUTOR_CASES : plan.cases.filter((c) => c.priority === "p1").map((c) => c.id));
+      const wanted = options.caseIds ?? (mock ? SCRIPTED_CREW_CASES : plan.cases.filter((c) => c.priority === "p1").map((c) => c.id));
       const cases = plan.cases.filter((c) => wanted.includes(c.id));
       if (cases.length === 0) return { skipped: true, notes: ["No cases to automate in the approved plan."] };
 
       // Resume: cases finished in an earlier attempt are not repeated.
       const reports: ExecutionReport[] = ctx.exists("execution.json") ? await ctx.readJson<ExecutionReport[]>("execution.json") : [];
-      const model = modelForRole("executor", scriptedExecutor, env);
+      const model = modelForRole("executor", () => scriptedExecutor(wanted), env);
       const toolbox = await qaTools(
         { include: ["read_test_file", "list_test_files", "get_api_reference", "list_rooms", "write_generated_test", "run_generated_test"] },
         env,
@@ -159,6 +164,75 @@ export function crewStages(options: CrewStageOptions = {}): Stage[] {
           `${n(reports.length, "case")}: ${count("passed")} passed, ${n(count("failing-suspected-product-bug"), "suspected product bug")}, ${count("blocked")} blocked.`,
           ...(unverified ? [`${n(unverified, "result was", "results were")} not confirmed by the independent re-run.`] : []),
           ...notes,
+        ],
+      };
+    },
+  };
+
+  const EXECUTOR_TOOLS = ["read_test_file", "list_test_files", "get_api_reference", "list_rooms", "write_generated_test", "run_generated_test"];
+
+  const review: Stage = {
+    name: "review",
+    title: "Reviewer: generated tests → checked against their cases",
+    async run(ctx) {
+      if (!ctx.exists("execution.json")) throw new Error("no execution.json in the run folder");
+      const plan = await ctx.readJson<TestPlan>("test-plan.json");
+      const reports = await ctx.readJson<ExecutionReport[]>("execution.json");
+      const toReview = reports.filter((r) => r.file && r.outcome !== "blocked");
+      if (toReview.length === 0) return { skipped: true, notes: ["No generated tests to review."] };
+
+      const maxRounds = options.reviewRounds ?? 1;
+      const reviews: Review[] = ctx.exists("reviews.json") ? await ctx.readJson<Review[]>("reviews.json") : [];
+      const finished = (caseId: string) => reviews.some((r) => r.caseId === caseId && (r.verdict === "approve" || (r.round ?? 1) > maxRounds));
+
+      // The Reviewer reads; it never writes. Revisions go back to the Executor, with the Executor's tools.
+      const reviewer = modelForRole("reviewer", scriptedReviewer, env);
+      const executor = modelForRole("executor", scriptedExecutorRevision, env);
+      const readTools = await qaTools({ include: ["read_test_file", "list_requirements", "get_api_reference"] }, env);
+      const writeTools = await qaTools({ include: EXECUTOR_TOOLS }, env, { QA_TOOLS_ALLOW_TEST_WRITES: "true" });
+      let usage = NONE;
+      let revised = 0;
+      try {
+        for (const original of toReview) {
+          if (finished(original.caseId)) continue;
+          const testCase = plan.cases.find((c) => c.id === original.caseId);
+          if (!testCase) continue;
+          let report = reports.find((r) => r.caseId === original.caseId)!;
+          for (let round = 1; ; round++) {
+            if (ctx.tokensLeft(usage.inputTokens + usage.outputTokens) <= 0) throw new Error("the run's token budget is spent");
+            const source = await readFile(`tests/generated/${report.file}`, "utf8");
+            if (options.verbose) console.log(`  --- review ${testCase.id}, round ${round}`);
+            const { review, run } = await runReviewer({ model: reviewer, tools: readTools.tools, testCase, source, report, onEvent: events("    ") });
+            usage = add(usage, run.usage);
+            if (!review) throw new Error(`the Reviewer produced no review for ${testCase.id} (${run.status})`);
+            reviews.push({ ...review, round });
+            await ctx.write("reviews.json", reviews);
+            if (review.verdict === "approve" || round > maxRounds) break;
+
+            // The evaluator loop: the findings go back to the Executor for one more attempt.
+            const result = await runExecutor({ model: executor, tools: writeTools.tools, testCase, revision: revisionRequest(review), onEvent: events("    ") });
+            usage = add(usage, result.run.usage);
+            if (!result.report) break;
+            revised++;
+            report = { ...result.report, notes: `${result.report.notes} (revised after review round ${round})`.trim() };
+            reports[reports.findIndex((r) => r.caseId === testCase.id)] = report;
+            await ctx.write("execution.json", reports);
+          }
+        }
+      } finally {
+        await readTools.close();
+        await writeTools.close();
+      }
+      await ctx.write("reviews.md", renderReviews(reviews));
+      const last = new Map(reviews.map((r) => [r.caseId, r]));
+      const approved = [...last.values()].filter((r) => r.verdict === "approve").length;
+      const open = last.size - approved;
+      return {
+        usage,
+        artifacts: ["reviews.json", "reviews.md", "execution.json"],
+        notes: [
+          `${n(last.size, "test")} reviewed: ${approved} approved, ${n(revised, "revision")}, ${open} still disputed.`,
+          `${reviewer.provider} / ${reviewer.model}`,
         ],
       };
     },
@@ -208,5 +282,5 @@ export function crewStages(options: CrewStageOptions = {}): Stage[] {
     },
   };
 
-  return [analyze, design, execute, triage];
+  return [analyze, design, execute, review, triage];
 }

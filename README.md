@@ -54,6 +54,7 @@ npm test
 | `issues/` | The booking app's issue tracker, as Markdown (Chapter 8) |
 | `src/agents/triager/` | The Triager: evidence, classification, guards and draft bug reports (Chapter 8) |
 | `tests/triage-demo/` | A red build with four failures, each for a different reason (Chapter 8) |
+| `src/agents/reviewer/` | The Reviewer: checks each generated test against its case, with a calibration set (Chapter 10) |
 | `src/crew/` | The orchestrator: the crew as one run, with approval gates, a budget and a summary of your decisions (Chapter 9) |
 
 More folders appear as you progress through the book (`src/agents/`, `src/tools/`, `src/crew/` and so on).
@@ -105,6 +106,10 @@ npm run crew -- status       # where the latest run is
 npm run crew -- continue     # after a failure, or with --max-tokens after the budget ran out
 QA_MODEL_PROVIDER=mock npm run crew -- start --auto   # the whole crew, scripted, no gates
 ```
+
+Since Chapter 10, a Reviewer checks every generated test against its case between the Executor and the
+Triager, and sends findings back to the Executor for one revision. `npm run ch10` measures the Reviewer
+on a calibration set of tests with planted defects.
 
 ## Requirements and traceability
 

@@ -298,3 +298,71 @@ export const triageItemSchema: JsonSchema = {
   },
   required: ["classification", "confidence", "rationale", "evidence"],
 };
+
+// ---------------------------------------------------------------------------
+// Reviewer: a second agent checks the Executor's tests before a human sees them
+// ---------------------------------------------------------------------------
+
+/** What the Reviewer checks in a generated test. Each finding names one of these. */
+export const REVIEW_CHECKS = {
+  "oracle-complete": "The test asserts everything the case's expected result names: status, message and stored state.",
+  "right-reason": "Each assertion can only pass for the reason the case is about. No other rule can produce the same result.",
+  "setup-verified": "Every setup step the test depends on is itself asserted, so a broken setup cannot look like a pass.",
+  "data-matches-case": "The test uses the case's data: room, guests and dates, or values that keep the same meaning.",
+  "no-weakening": "The test expects what the case expects. It does not change the status, drop the message or skip the state check.",
+  "traceable": "The test is tagged with the case id and its requirement ids.",
+  "isolated": "The test does not depend on other tests, on their order, on shared data or on the time of day.",
+} as const;
+
+export type ReviewCheck = keyof typeof REVIEW_CHECKS;
+export const REVIEW_VERDICTS = ["approve", "request-changes"] as const;
+
+export interface ReviewFinding {
+  check: ReviewCheck;
+  severity: "blocker" | "major" | "minor";
+  /** 1-based line in the test file, when the problem has one. */
+  line?: number;
+  problem: string;
+  /** The change that would fix it. Never "change the expected result". */
+  suggestion: string;
+  /** Who found it: a code check before the model, or the Reviewer agent. */
+  source?: "code" | "reviewer" | "code and reviewer";
+}
+
+export interface Review {
+  caseId: string;
+  file: string;
+  verdict: (typeof REVIEW_VERDICTS)[number];
+  summary: string;
+  findings: ReviewFinding[];
+  /** Filled in by code. */
+  round?: number;
+  warnings?: string[];
+}
+
+export const reviewSchema: JsonSchema = {
+  type: "object",
+  properties: {
+    verdict: {
+      type: "string",
+      enum: [...REVIEW_VERDICTS],
+      description: "approve only if there is no blocker or major finding. Otherwise request-changes.",
+    },
+    summary: { type: "string", description: "One or two sentences: is this test trustworthy, and why?" },
+    findings: {
+      type: "array",
+      items: {
+        type: "object",
+        properties: {
+          check: { type: "string", enum: Object.keys(REVIEW_CHECKS) },
+          severity: { type: "string", enum: ["blocker", "major", "minor"] },
+          line: { type: "integer", minimum: 1 },
+          problem: { type: "string", description: "What is wrong, concretely, citing the code." },
+          suggestion: { type: "string", description: "The smallest change that fixes it, without changing what the case expects." },
+        },
+        required: ["check", "severity", "problem", "suggestion"],
+      },
+    },
+  },
+  required: ["verdict", "summary", "findings"],
+};

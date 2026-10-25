@@ -139,16 +139,25 @@ test.describe("the whole crew with scripted models", () => {
 
     expect(run.error).toBeUndefined();
     expect(run.status).toBe("done");
-    expect(run.stages.map((s) => s.status)).toEqual(["done", "done", "done", "done"]);
+    expect(run.stages.map((s) => s.status)).toEqual(["done", "done", "done", "done", "done"]);
     // Every hand-off is a file in the run folder.
     expect(run.stages.flatMap((s) => s.artifacts)).toEqual(
-      expect.arrayContaining(["risk-map.json", "test-plan.json", "execution.json", "triage.json"]),
+      expect.arrayContaining(["risk-map.json", "test-plan.json", "execution.json", "reviews.json", "triage.json"]),
     );
     // The scripted model's usage is estimated, so budgets work in demos too.
     expect(run.usage.inputTokens).toBeGreaterThan(1000);
 
+    // The Reviewer caught TC-05 passing for the wrong reason; the revised test failed and became a new bug.
+    const reviews = JSON.parse(await readFile(path.join(store.root, run.id, "reviews.json"), "utf8"));
+    expect(reviews.map((r: { caseId: string; verdict: string }) => `${r.caseId}:${r.verdict}`)).toEqual(["TC-02:approve", "TC-05:request-changes", "TC-05:approve", "TC-08:approve"]);
+    const execution = JSON.parse(await readFile(path.join(store.root, run.id, "execution.json"), "utf8"));
+    expect(execution.find((r: { caseId: string }) => r.caseId === "TC-05")).toMatchObject({ outcome: "failing-suspected-product-bug", verified: true });
+
     const decisions = await decisionsFor(store, run);
-    expect(decisions.map((d) => d.kind)).toEqual(expect.arrayContaining(["linked", "promote-test", "uncovered-risk"]));
+    expect(decisions.map((d) => d.kind)).toEqual(expect.arrayContaining(["linked", "file-bug", "promote-test", "uncovered-risk"]));
     expect(decisions.find((d) => d.kind === "linked")?.text).toContain("ISSUE-0031");
+    expect(decisions.find((d) => d.kind === "file-bug")?.text).toContain("TC-05");
+    // TC-05's first version passed, but it is not offered for promotion: the review rejected it.
+    expect(decisions.filter((d) => d.kind === "promote-test").map((d) => d.text)).toEqual([expect.stringContaining("TC-08")]);
   });
 });
