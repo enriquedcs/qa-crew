@@ -1,3 +1,4 @@
+import { fetchWithRetry } from "./http.ts";
 import { DEFAULT_MAX_TOKENS, type CompletionRequest, type CompletionResponse, type Message, type ModelClient, type ToolCall } from "./types.ts";
 
 // Adapter for any API that speaks the OpenAI Chat Completions format:
@@ -75,7 +76,7 @@ export function createOpenAICompatibleClient(options: OpenAICompatibleOptions): 
         }));
       }
 
-      const res = await fetch(`${baseUrl}/chat/completions`, { method: "POST", headers, body: JSON.stringify(body) });
+      const res = await fetchWithRetry(`${baseUrl}/chat/completions`, { method: "POST", headers, body: JSON.stringify(body) });
       if (!res.ok) throw new Error(`${provider} API error ${res.status}: ${await res.text()}`);
       const data = (await res.json()) as {
         choices: {

@@ -1,3 +1,4 @@
+import { fetchWithRetry } from "./http.ts";
 import { DEFAULT_MAX_TOKENS, type CompletionRequest, type CompletionResponse, type Message, type ModelClient, type ToolCall } from "./types.ts";
 
 // Adapter for the Anthropic Messages API (Claude models).
@@ -55,7 +56,7 @@ export function createAnthropicClient(options: AnthropicOptions): ModelClient {
     provider: "anthropic",
     model: options.model,
     async complete(request: CompletionRequest): Promise<CompletionResponse> {
-      const res = await fetch(`${baseUrl}/v1/messages`, {
+      const res = await fetchWithRetry(`${baseUrl}/v1/messages`, {
         method: "POST",
         headers: {
           "content-type": "application/json",

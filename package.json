@@ -1,6 +1,6 @@
 {
   "name": "qa-crew",
-  "version": "0.8.0",
+  "version": "0.8.1",
   "description": "Companion code for the book Agentic QA: a booking app and a team of AI testing agents.",
   "private": true,
   "type": "module",
