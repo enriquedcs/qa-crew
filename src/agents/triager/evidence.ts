@@ -1,5 +1,5 @@
 import { readFile } from "node:fs/promises";
-import type { EvidencePack, Failure } from "../../crew/contracts.ts";
+import type { EvidencePack, ExecutionReport, Failure, TestPlan } from "../../crew/contracts.ts";
 import { runPlaywright, type RunSummary } from "../../runner/playwright.ts";
 import { errorHeadline } from "../executor/executor.ts";
 
@@ -52,4 +52,18 @@ export async function collectEvidence(failure: Failure, options: EvidenceOptions
   }
 
   return { failure, runs, consistent, appHealthy, testSource };
+}
+
+/**
+ * The Executor's findings, as failures to triage: every case it reported as a suspected product bug,
+ * run once more to get the current error, with the case's oracle attached.
+ */
+export async function failuresFromExecution(reports: ExecutionReport[], plan?: TestPlan, options: { appPort?: number } = {}): Promise<Failure[]> {
+  const failures: Failure[] = [];
+  for (const r of reports.filter((r) => r.outcome === "failing-suspected-product-bug")) {
+    const summary = await runPlaywright(`tests/generated/${r.file}`, { appPort: options.appPort ?? 3200 });
+    const expected = plan?.cases.find((c) => c.id === r.caseId)?.expected;
+    for (const f of failuresFrom(summary)) failures.push({ ...f, caseId: r.caseId, ...(expected ? { expected } : {}) });
+  }
+  return failures;
 }

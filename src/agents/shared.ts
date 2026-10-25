@@ -10,6 +10,17 @@ export function modelOrMock(script: () => MockTurn[], env = process.env): ModelC
   return (env.QA_MODEL_PROVIDER ?? "").toLowerCase() === "mock" ? createMockClient(script()) : createModelFromEnv(env);
 }
 
+export type CrewRole = "analyst" | "designer" | "executor" | "triager" | "reviewer";
+
+/**
+ * The model for one role in the crew. QA_<ROLE>_MODEL overrides QA_MODEL for that role only,
+ * with the same provider and key: for example a stronger model for the Analyst, a cheaper one elsewhere.
+ */
+export function modelForRole(role: CrewRole, script: () => MockTurn[], env = process.env): ModelClient {
+  const override = env[`QA_${role.toUpperCase()}_MODEL`];
+  return modelOrMock(script, override ? { ...env, QA_MODEL: override } : env);
+}
+
 /** Print the agent loop as it runs, so you can watch it think and act. */
 export function printEvents(prefix = ""): (event: AgentEvent) => void {
   return (e) => {
