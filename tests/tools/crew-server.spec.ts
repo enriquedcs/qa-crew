@@ -8,7 +8,7 @@ import { expect, test } from "@playwright/test";
 // The qa-crew MCP server, as an IDE would use it: over stdio, with a person who answers
 // (or does not answer) the questions the server asks. The stages are fakes.
 
-type Answer = { action: "accept"; content: Record<string, unknown> } | { action: "decline" } | { action: "cancel" };
+type Answer = { action: "accept"; content: Record<string, string | number | boolean | string[]> } | { action: "decline" } | { action: "cancel" };
 
 let dir: string;
 let asked: string[];
