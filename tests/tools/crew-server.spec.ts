@@ -124,6 +124,12 @@ test("a confirmed draft is filed as the next issue; duplicates and repeats are r
     expect((await call(client, "crew_status")).text).toContain(": done.");
     expect(done.text).toMatch(/done/);
 
+    const runs = await readdir(path.join(dir, "runs"));
+    const { resources } = await client.listResources();
+    expect(resources.map((r) => r.uri)).toContain(`crew://runs/${runs[0]}/DRAFT-TC-05.md`);
+    const draft = await client.readResource({ uri: `crew://runs/${runs[0]}/DRAFT-TC-05.md` });
+    expect((draft.contents[0] as { text: string }).text).toContain("stays that have already started");
+
     expect((await call(client, "crew_file_bug", { caseId: "TC-02" })).text).toContain("already reported as ISSUE-0031");
 
     nextAnswer = { action: "accept", content: { file: true } };

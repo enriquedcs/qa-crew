@@ -290,14 +290,16 @@ export function createCrewServer(options: CrewServerOptions): McpServer {
       list: async () => {
         const id = await latestRunId(store);
         if (!id) return { resources: [] };
-        const files = (await readdir(runDir(store, id))).filter((f) => /\.(md|json)$/.test(f));
+        const dir = runDir(store, id);
+        const drafts = existsSync(path.join(dir, "issues")) ? await readdir(path.join(dir, "issues")) : [];
+        const files = [...(await readdir(dir)).filter((f) => /\.(md|json)$/.test(f)), ...drafts.filter((f) => f.startsWith("DRAFT-"))];
         return { resources: files.map((f) => ({ uri: `crew://runs/${id}/${f}`, name: `${id}/${f}`, mimeType: f.endsWith(".md") ? "text/markdown" : "application/json" })) };
       },
     }),
-    { title: "Crew run file", description: "A file from a QA Crew run: summary.md, risk-map.md, test-plan.md, reviews.md, triage.md and their JSON." },
+    { title: "Crew run file", description: "A file from a QA Crew run: summary.md, risk-map.md, test-plan.md, reviews.md, triage.md, their JSON, and draft bug reports (DRAFT-<case>.md)." },
     async (uri, { runId, file }) => {
       const name = path.basename(String(file));
-      const target = path.join(runDir(store, String(runId)), name);
+      const target = path.join(runDir(store, String(runId)), name.startsWith("DRAFT-") ? "issues" : "", name);
       if (!existsSync(target)) throw new Error(`No file ${name} in run ${runId}.`);
       return { contents: [{ uri: uri.href, text: await readFile(target, "utf8"), mimeType: name.endsWith(".md") ? "text/markdown" : "application/json" }] };
     },

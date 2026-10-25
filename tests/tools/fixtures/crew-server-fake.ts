@@ -24,7 +24,7 @@ const stages = () => [
   stage("design", { "test-plan.json": { cases: [] }, "test-plan.md": "# Test plan" }, "test-plan.json"),
   stage("execute"),
   stage("review"),
-  stage("triage", { "triage.json": [dup, bug] }),
+  stage("triage", { "triage.json": [dup, bug], "issues/DRAFT-TC-05.md": "# Bookings can be made for stays that have already started" as unknown as object }),
 ];
 
 serveStdio(() =>
