@@ -127,7 +127,7 @@ export async function renderRunSummary(store: RunStore, run: CrewRun, titles: Re
   for (const d of decisions) lines.push(`- [ ] ${d.text}`);
 
   const riskMap = await readJson<RiskMap>(dir, "risk-map.json");
-  const files = run.stages.flatMap((s) => s.artifacts);
+  const files = [...new Set(run.stages.flatMap((s) => s.artifacts))];
   if (riskMap || files.length) {
     lines.push("", "## Files", "");
     for (const f of files) lines.push(`- \`${path.join(dir, f)}\``);
