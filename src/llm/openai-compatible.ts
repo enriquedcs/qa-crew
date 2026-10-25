@@ -12,12 +12,20 @@ interface OpenAICompatibleOptions {
   provider?: string;
 }
 
+/** A tool call as the API sends it. Gemini adds extra_content.google.thought_signature. */
+interface OpenAIToolCall {
+  id: string;
+  type: "function";
+  function: { name: string; arguments: string };
+  extra_content?: Record<string, unknown>;
+}
+
 type ChatMessage =
   | { role: "system" | "user"; content: string }
   | {
       role: "assistant";
       content: string | null;
-      tool_calls?: { id: string; type: "function"; function: { name: string; arguments: string } }[];
+      tool_calls?: OpenAIToolCall[];
     }
   | { role: "tool"; tool_call_id: string; content: string };
 
@@ -27,10 +35,12 @@ function toChatMessages(system: string, messages: Message[]): ChatMessage[] {
     if (m.role === "user") {
       out.push({ role: "user", content: m.content });
     } else if (m.role === "assistant") {
-      const toolCalls = (m.toolCalls ?? []).map((c) => ({
+      const toolCalls: OpenAIToolCall[] = (m.toolCalls ?? []).map((c) => ({
         id: c.id,
         type: "function" as const,
         function: { name: c.name, arguments: JSON.stringify(c.input) },
+        // Send back exactly what the provider attached, or Gemini 3 rejects the request.
+        ...(c.providerData?.extra_content ? { extra_content: c.providerData.extra_content as Record<string, unknown> } : {}),
       }));
       out.push(
         toolCalls.length > 0
@@ -83,7 +93,7 @@ export function createOpenAICompatibleClient(options: OpenAICompatibleOptions): 
           finish_reason?: string;
           message: {
             content: string | null;
-            tool_calls?: { id: string; function: { name: string; arguments: string } }[];
+            tool_calls?: Omit<OpenAIToolCall, "type">[];
           };
         }[];
         usage?: { prompt_tokens: number; completion_tokens: number };
@@ -94,6 +104,7 @@ export function createOpenAICompatibleClient(options: OpenAICompatibleOptions): 
         id: c.id,
         name: c.function.name,
         input: parseArguments(c.function.arguments),
+        ...(c.extra_content ? { providerData: { extra_content: c.extra_content } } : {}),
       }));
 
       return {

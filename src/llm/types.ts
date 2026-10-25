@@ -20,6 +20,11 @@ export interface ToolCall {
   id: string;
   name: string;
   input: Record<string, unknown>;
+  /**
+   * Opaque data the provider attached to this call and expects back, unchanged, in the next request.
+   * Gemini 3 uses it for "thought signatures". The loop never reads it; adapters copy it through.
+   */
+  providerData?: Record<string, unknown>;
 }
 
 export type Message =
