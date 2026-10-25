@@ -2,14 +2,31 @@
   "mcpServers": {
     "qa-tools": {
       "command": "npx",
-      "args": ["tsx", "src/tools/qa-tools/main.ts"],
+      "args": [
+        "tsx",
+        "src/tools/qa-tools/main.ts"
+      ],
+      "env": {
+        "BOOKING_URL": "${BOOKING_URL:-http://localhost:3000}"
+      }
+    },
+    "qa-crew": {
+      "command": "npx",
+      "args": [
+        "tsx",
+        "src/tools/crew/main.ts"
+      ],
       "env": {
         "BOOKING_URL": "${BOOKING_URL:-http://localhost:3000}"
       }
     },
     "playwright": {
       "command": "npx",
-      "args": ["@playwright/mcp@latest", "--headless", "--isolated"]
+      "args": [
+        "@playwright/mcp@latest",
+        "--headless",
+        "--isolated"
+      ]
     }
   }
 }

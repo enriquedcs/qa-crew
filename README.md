@@ -55,6 +55,7 @@ npm test
 | `src/agents/triager/` | The Triager: evidence, classification, guards and draft bug reports (Chapter 8) |
 | `tests/triage-demo/` | A red build with four failures, each for a different reason (Chapter 8) |
 | `src/agents/reviewer/` | The Reviewer: checks each generated test against its case, with a calibration set (Chapter 10) |
+| `src/tools/crew/` | The crew as an MCP server for your IDE: status, review, approvals and filing that ask you first (Chapter 11) |
 | `src/crew/` | The orchestrator: the crew as one run, with approval gates, a budget and a summary of your decisions (Chapter 9) |
 
 More folders appear as you progress through the book (`src/agents/`, `src/tools/`, `src/crew/` and so on).
@@ -82,6 +83,26 @@ To explore the tools by hand:
 ```bash
 npx @modelcontextprotocol/inspector npx tsx src/tools/qa-tools/main.ts
 ```
+
+## Using the crew from your coding assistant
+
+Since Chapter 11, `.mcp.json` also registers `qa-crew`, the whole crew as an MCP server
+(`npx tsx src/tools/crew/main.ts`). From Claude Code, Cursor or VS Code with Copilot you can start a run,
+ask what is waiting for you, review a gate, approve it and file a bug, without leaving the editor:
+
+| Tool | What it does | Who decides |
+|---|---|---|
+| `crew_status`, `crew_review` | Where a run is; the file to review at its gate | Read-only |
+| `crew_start`, `crew_continue` | Start a run (it stops at each gate), or continue one | The assistant, with your permission |
+| `crew_approve` | Approve the gate the run waits at | **You**: the server asks you directly |
+| `crew_file_bug` | File a Triager draft in `issues/` | **You**: the server asks you directly |
+
+Approving and filing use MCP elicitation: the server asks the person, not the assistant. A host that
+cannot ask is refused. Prompts `review-gate` and `crew-inbox` appear as slash commands in hosts that
+support MCP prompts, and every run file is a resource at `crew://runs/<id>/<file>`.
+
+`AGENTS.md` (read by Codex, Cursor and Copilot, and by Claude Code through `CLAUDE.md`) tells assistants
+which decisions are yours, and `.claude/settings.json` lets Claude Code call the read-only tools without asking.
 
 ## Running the crew
 

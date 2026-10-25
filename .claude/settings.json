@@ -1,0 +1,19 @@
+{
+  "permissions": {
+    "allow": [
+      "mcp__qa-tools__list_rooms",
+      "mcp__qa-tools__list_bookings",
+      "mcp__qa-tools__get_booking",
+      "mcp__qa-tools__get_api_reference",
+      "mcp__qa-tools__list_test_files",
+      "mcp__qa-tools__read_test_file",
+      "mcp__qa-tools__list_requirements",
+      "mcp__qa-tools__trace_requirements",
+      "mcp__qa-tools__search_knowledge",
+      "mcp__qa-tools__search_issues",
+      "mcp__qa-tools__recent_changes",
+      "mcp__qa-crew__crew_status",
+      "mcp__qa-crew__crew_review"
+    ]
+  }
+}

@@ -1,6 +1,6 @@
 {
   "name": "qa-crew",
-  "version": "0.10.0",
+  "version": "0.11.0",
   "description": "Companion code for the book Agentic QA: a booking app and a team of AI testing agents.",
   "private": true,
   "type": "module",
@@ -11,6 +11,7 @@
   "scripts": {
     "app": "tsx src/app/server.ts",
     "qa-tools": "tsx src/tools/qa-tools/main.ts",
+    "qa-crew": "tsx src/tools/crew/main.ts",
     "ch02": "tsx src/examples/ch02-first-agent.ts",
     "ch03": "tsx src/examples/ch03-agent-with-mcp.ts",
     "trace": "tsx src/examples/ch04-trace.ts",
