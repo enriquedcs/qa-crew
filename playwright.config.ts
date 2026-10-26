@@ -17,7 +17,14 @@ export default defineConfig({
   projects: [{ name: "chromium", use: { ...devices["Desktop Chrome"] } }],
   webServer: {
     command: "npm run app",
-    env: { PORT: String(PORT) },
+    // The assistant (Chapter 14) is scripted unless you point it at a model: ASSISTANT_MODEL_PROVIDER, ASSISTANT_MODEL...
+    env: {
+      PORT: String(PORT),
+      ASSISTANT_MODEL_PROVIDER: process.env.ASSISTANT_MODEL_PROVIDER ?? "mock",
+      ...(process.env.ASSISTANT_MODEL ? { ASSISTANT_MODEL: process.env.ASSISTANT_MODEL } : {}),
+      ...(process.env.ASSISTANT_MODEL_API_KEY ? { ASSISTANT_MODEL_API_KEY: process.env.ASSISTANT_MODEL_API_KEY } : {}),
+      ...(process.env.ASSISTANT_MODEL_BASE_URL ? { ASSISTANT_MODEL_BASE_URL: process.env.ASSISTANT_MODEL_BASE_URL } : {}),
+    },
     url: `http://localhost:${PORT}/api/health`,
     reuseExistingServer: !process.env.CI,
     timeout: 30_000,

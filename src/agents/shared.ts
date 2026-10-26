@@ -10,7 +10,7 @@ export function modelOrMock(script: () => MockTurn[], env = process.env): ModelC
   return (env.QA_MODEL_PROVIDER ?? "").toLowerCase() === "mock" ? createMockClient(script()) : createModelFromEnv(env);
 }
 
-export type CrewRole = "analyst" | "designer" | "executor" | "triager" | "reviewer";
+export type CrewRole = "analyst" | "designer" | "executor" | "triager" | "reviewer" | "judge";
 
 /**
  * The model for one role in the crew. QA_<ROLE>_MODEL overrides QA_MODEL for that role only,

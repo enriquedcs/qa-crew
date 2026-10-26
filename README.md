@@ -167,6 +167,22 @@ The crew also treats your attention as a budget: every decision in a run summary
 minutes, the most important come first, and `npm run crew` refuses to start a new run while two others wait
 for a person (`QA_CREW_MAX_WAITING`).
 
+## The booking assistant (Chapter 14)
+
+The app has an assistant: `POST /api/assistant` with `{ "message": "Is there a room for 3 people from 2030-05-01 to 2030-05-03?" }`
+answers in plain words and may suggest one booking. It never books. It is a language model with read-only tools,
+and its requirements are in `specs/002-booking-assistant/`.
+
+```bash
+npm run ch14                                   # the question set against the assistant, with code checks and a judge
+ASSISTANT_MODEL_PROVIDER=mock npm run ch14     # the scripted assistant: two mistakes planted on purpose
+npm test -- tests/assistant                    # the same rules as Playwright tests (scripted by default)
+npm run eval -- --suite judge                  # calibrate the judge on labeled answers
+```
+
+The assistant's model comes from `ASSISTANT_MODEL_PROVIDER`, `ASSISTANT_MODEL`, `ASSISTANT_MODEL_API_KEY` and
+`ASSISTANT_MODEL_BASE_URL`, falling back to the `QA_MODEL_*` settings. The judge uses `QA_JUDGE_MODEL`, or `QA_MODEL`.
+
 ## Requirements and traceability
 
 Run `npm run trace` to see which requirements in `specs/` and `odd/tasks/` have tests, which do not, which test tags point at requirements that no longer exist, and which questions are still open. Add `-- --strict` in CI to fail the build on drift.

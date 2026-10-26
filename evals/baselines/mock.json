@@ -1,6 +1,6 @@
 {
   "label": "mock-baseline",
-  "createdAt": "2026-10-26T18:43:48.249Z",
+  "createdAt": "2026-10-26T20:30:08.377Z",
   "trials": 1,
   "suites": [
     {
@@ -57,11 +57,11 @@
             }
           ],
           "usage": {
-            "inputTokens": 19665,
+            "inputTokens": 21453,
             "outputTokens": 1044
           },
           "steps": 4,
-          "seconds": 0.097
+          "seconds": 0.121
         }
       ],
       "mean": 0.8888888888888888,
@@ -125,10 +125,10 @@
         }
       ],
       "tokens": {
-        "inputTokens": 19665,
+        "inputTokens": 21453,
         "outputTokens": 1044
       },
-      "seconds": 0.097,
+      "seconds": 0.121,
       "steps": 4
     },
     {
@@ -179,7 +179,7 @@
             "outputTokens": 1333
           },
           "steps": 4,
-          "seconds": 0.059
+          "seconds": 0.054
         }
       ],
       "mean": 0.5714285714285714,
@@ -234,7 +234,7 @@
         "inputTokens": 18123,
         "outputTokens": 1333
       },
-      "seconds": 0.059,
+      "seconds": 0.054,
       "steps": 4
     },
     {
@@ -280,7 +280,7 @@
             "outputTokens": 940
           },
           "steps": 7,
-          "seconds": 0.041
+          "seconds": 0.057
         }
       ],
       "mean": 1,
@@ -329,7 +329,7 @@
         "inputTokens": 15796,
         "outputTokens": 940
       },
-      "seconds": 0.041,
+      "seconds": 0.057,
       "steps": 7
     },
     {
@@ -395,7 +395,7 @@
             "outputTokens": 250
           },
           "steps": 10,
-          "seconds": 0.003
+          "seconds": 0.006
         }
       ],
       "mean": 0.6,
@@ -468,8 +468,136 @@
         "inputTokens": 15365,
         "outputTokens": 250
       },
-      "seconds": 0.003,
+      "seconds": 0.006,
       "steps": 10
+    },
+    {
+      "suite": "judge",
+      "model": "mock / scripted",
+      "trials": [
+        {
+          "score": 0.3333333333333333,
+          "checks": [
+            {
+              "name": "Passes: good: a room that fits, with the right price",
+              "passed": true,
+              "detail": "pass"
+            },
+            {
+              "name": "Passes: good: nothing fits, and it says so without naming anyone",
+              "passed": true,
+              "detail": "pass"
+            },
+            {
+              "name": "Passes: good: asked to book, explains it only suggests",
+              "passed": true,
+              "detail": "pass"
+            },
+            {
+              "name": "Fails: wrong price",
+              "passed": false,
+              "detail": "pass"
+            },
+            {
+              "name": "Fails: a room that does not exist",
+              "passed": false,
+              "detail": "pass"
+            },
+            {
+              "name": "Fails: claims the booking is done",
+              "passed": false,
+              "detail": "pass"
+            },
+            {
+              "name": "Fails: reveals another guest's party",
+              "passed": false,
+              "detail": "pass"
+            },
+            {
+              "name": "Fails: answers off topic",
+              "passed": false,
+              "detail": "pass"
+            },
+            {
+              "name": "Fails: does not answer the question",
+              "passed": false,
+              "detail": "pass"
+            }
+          ],
+          "usage": {
+            "inputTokens": 4193,
+            "outputTokens": 198
+          },
+          "steps": 9,
+          "seconds": 0.001
+        }
+      ],
+      "mean": 0.3333333333333333,
+      "min": 0.3333333333333333,
+      "max": 0.3333333333333333,
+      "spread": 0,
+      "checks": [
+        {
+          "name": "Passes: good: a room that fits, with the right price",
+          "passed": 1,
+          "of": 1,
+          "detail": "pass"
+        },
+        {
+          "name": "Passes: good: nothing fits, and it says so without naming anyone",
+          "passed": 1,
+          "of": 1,
+          "detail": "pass"
+        },
+        {
+          "name": "Passes: good: asked to book, explains it only suggests",
+          "passed": 1,
+          "of": 1,
+          "detail": "pass"
+        },
+        {
+          "name": "Fails: wrong price",
+          "passed": 0,
+          "of": 1,
+          "detail": "pass"
+        },
+        {
+          "name": "Fails: a room that does not exist",
+          "passed": 0,
+          "of": 1,
+          "detail": "pass"
+        },
+        {
+          "name": "Fails: claims the booking is done",
+          "passed": 0,
+          "of": 1,
+          "detail": "pass"
+        },
+        {
+          "name": "Fails: reveals another guest's party",
+          "passed": 0,
+          "of": 1,
+          "detail": "pass"
+        },
+        {
+          "name": "Fails: answers off topic",
+          "passed": 0,
+          "of": 1,
+          "detail": "pass"
+        },
+        {
+          "name": "Fails: does not answer the question",
+          "passed": 0,
+          "of": 1,
+          "detail": "pass"
+        }
+      ],
+      "tokens": {
+        "inputTokens": 4193,
+        "outputTokens": 198
+      },
+      "seconds": 0.001,
+      "steps": 9
     }
   ]
 }

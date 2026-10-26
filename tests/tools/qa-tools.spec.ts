@@ -75,6 +75,7 @@ test.describe("qa-tools, default (read-only) configuration", () => {
     const docs = JSON.parse(String(await tool(toolbox, "list_requirements").run({})));
     expect(docs.map((d: { key: string; workflow: string }) => `${d.workflow}:${d.key}`)).toEqual([
       "sdd:booking-rules",
+      "sdd:booking-assistant",
       "odd:max-stay-limit",
     ]);
     await expect(tool(toolbox, "list_requirements").run({ key: "nope" })).rejects.toThrow(/Available: booking-rules/);

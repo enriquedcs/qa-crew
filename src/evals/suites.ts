@@ -16,7 +16,8 @@ import { runTriager } from "../agents/triager/triager.ts";
 import type { CrewRole } from "../agents/shared.ts";
 import type { MockTurn, ModelClient, Usage } from "../llm/index.ts";
 import { connectMcpServers, loadMcpConfig, type McpToolFilter } from "../mcp/connect.ts";
-import { scoreCalibration, scoreExecution, scoreRiskMap, scoreTestPlan, scoreTriage, type Check } from "./scorers.ts";
+import { calibrateJudge, rubberStampJudge } from "./judge.ts";
+import { scoreCalibration, scoreExecution, scoreJudgeCalibration, scoreRiskMap, scoreTestPlan, scoreTriage, type Check } from "./scorers.ts";
 
 // Chapter 12: one suite per agent. A suite runs the agent on a fixed input and scores the output.
 // The input never changes between trials or between models, so the only thing that varies is the model.
@@ -117,6 +118,16 @@ export const SUITES: Suite[] = [
     async trial(model, tools, onEvent) {
       const report = await calibrate(model, tools, undefined, onEvent);
       return { checks: scoreCalibration(report), usage: report.usage, steps: report.results.length };
+    },
+  },
+  {
+    name: "judge",
+    description: "Chapter 14: the judge of the assistant's answers, on 9 labeled answers (6 with planted defects)",
+    script: () => rubberStampJudge(),
+    tools: { include: [] },
+    async trial(model) {
+      const { results, usage } = await calibrateJudge(model);
+      return { checks: scoreJudgeCalibration(results), usage, steps: results.length };
     },
   },
 ];

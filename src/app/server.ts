@@ -4,6 +4,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { Store } from "./store.ts";
 import { validateBooking } from "./validation.ts";
+import { askAssistant, assistantModelFromEnv, type AssistantModel } from "./assistant.ts";
 
 // A deliberately small booking app with no runtime dependencies,
 // so readers can focus on testing it rather than on a framework.
@@ -31,7 +32,7 @@ async function readJsonBody(req: IncomingMessage): Promise<unknown> {
   }
 }
 
-export function createApp(store = new Store()) {
+export function createApp(store = new Store(), assistant: AssistantModel | undefined = assistantModelFromEnv()) {
   return createServer(async (req, res) => {
     const url = new URL(req.url ?? "/", "http://localhost");
     const { pathname } = url;
@@ -54,6 +55,17 @@ export function createApp(store = new Store()) {
         const result = validateBooking(body, store);
         if (!result.ok || !result.value) return sendJson(res, 400, { errors: result.errors });
         return sendJson(res, 201, store.addBooking(result.value));
+      }
+
+      // Chapter 14: the booking assistant. Answers and suggests; never books.
+      if (method === "POST" && pathname === "/api/assistant") {
+        const body = (await readJsonBody(req)) as { message?: unknown } | undefined;
+        const message = typeof body?.message === "string" ? body.message.trim() : "";
+        if (!message) return sendJson(res, 400, { errors: ["message is required"] });
+        if (message.length > 2000) return sendJson(res, 400, { errors: ["message is too long"] });
+        if (!assistant) return sendJson(res, 503, { errors: ["the assistant is not configured: set ASSISTANT_MODEL or QA_MODEL"] });
+        const reply = await askAssistant(message, store, assistant());
+        return reply ? sendJson(res, 200, reply) : sendJson(res, 502, { errors: ["the assistant did not answer"] });
       }
 
       const bookingMatch = pathname.match(/^\/api\/bookings\/([^/]+)$/);
@@ -85,6 +97,11 @@ export function createApp(store = new Store()) {
 const isMain = process.argv[1] !== undefined && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url);
 
 if (isMain) {
+  try {
+    process.loadEnvFile?.();
+  } catch {
+    // No .env file: the assistant uses the environment, or answers 503.
+  }
   const port = Number(process.env.PORT ?? 3000);
   createApp().listen(port, () => {
     console.log(`Booking app running at http://localhost:${port}`);

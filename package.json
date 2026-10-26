@@ -1,6 +1,6 @@
 {
   "name": "qa-crew",
-  "version": "0.13.0",
+  "version": "0.14.0",
   "description": "Companion code for the book Agentic QA: a booking app and a team of AI testing agents.",
   "private": true,
   "type": "module",
@@ -21,6 +21,7 @@
     "ch07:explore": "tsx src/examples/ch07-explore.ts",
     "ch08": "tsx src/examples/ch08-triager.ts",
     "ch10": "tsx src/examples/ch10-reviewer.ts",
+    "ch14": "tsx src/examples/ch14-assistant.ts",
     "crew": "tsx src/crew/main.ts",
     "eval": "tsx src/evals/main.ts",
     "eval:freeze": "tsx src/evals/freeze.ts",

@@ -194,3 +194,15 @@ export function scoreCalibration(report: CalibrationReport): Check[] {
     detail: `${r.verdict ?? "no review"}${r.findings.length ? `; ${r.findings.join(", ")}` : ""}`,
   }));
 }
+
+// ---------------------------------------------------------------------------
+// Judge (Chapter 14): labeled answers, one check per sample
+// ---------------------------------------------------------------------------
+
+export function scoreJudgeCalibration(results: { sample: string; expected: "pass" | "fail"; verdict?: string; correct: boolean; failed: string[] }[]): Check[] {
+  return results.map((r) => ({
+    name: r.expected === "pass" ? `Passes: ${r.sample}` : `Fails: ${r.sample}`,
+    passed: r.correct,
+    detail: `${r.verdict ?? "no judgment"}${r.failed.length ? `; ${r.failed.join(", ")}` : ""}`,
+  }));
+}
