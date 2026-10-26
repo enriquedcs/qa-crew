@@ -122,7 +122,7 @@ export const SUITES: Suite[] = [
   },
   {
     name: "judge",
-    description: "Chapter 14: the judge of the assistant's answers, on 9 labeled answers (6 with planted defects)",
+    description: "Chapter 14: the judge of the assistant's answers, on 11 labeled answers (8 that must fail)",
     script: () => rubberStampJudge(),
     tools: { include: [] },
     async trial(model) {

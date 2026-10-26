@@ -1,6 +1,6 @@
 {
   "label": "mock-baseline",
-  "createdAt": "2026-10-26T20:30:08.377Z",
+  "createdAt": "2026-10-26T21:21:29.332Z",
   "trials": 1,
   "suites": [
     {
@@ -61,7 +61,7 @@
             "outputTokens": 1044
           },
           "steps": 4,
-          "seconds": 0.121
+          "seconds": 0.083
         }
       ],
       "mean": 0.8888888888888888,
@@ -128,7 +128,7 @@
         "inputTokens": 21453,
         "outputTokens": 1044
       },
-      "seconds": 0.121,
+      "seconds": 0.083,
       "steps": 4
     },
     {
@@ -179,7 +179,7 @@
             "outputTokens": 1333
           },
           "steps": 4,
-          "seconds": 0.054
+          "seconds": 0.053
         }
       ],
       "mean": 0.5714285714285714,
@@ -234,7 +234,7 @@
         "inputTokens": 18123,
         "outputTokens": 1333
       },
-      "seconds": 0.054,
+      "seconds": 0.053,
       "steps": 4
     },
     {
@@ -276,11 +276,11 @@
             }
           ],
           "usage": {
-            "inputTokens": 15796,
+            "inputTokens": 15863,
             "outputTokens": 940
           },
           "steps": 7,
-          "seconds": 0.057
+          "seconds": 0.052
         }
       ],
       "mean": 1,
@@ -326,10 +326,10 @@
         }
       ],
       "tokens": {
-        "inputTokens": 15796,
+        "inputTokens": 15863,
         "outputTokens": 940
       },
-      "seconds": 0.057,
+      "seconds": 0.052,
       "steps": 7
     },
     {
@@ -395,7 +395,7 @@
             "outputTokens": 250
           },
           "steps": 10,
-          "seconds": 0.006
+          "seconds": 0.007
         }
       ],
       "mean": 0.6,
@@ -468,7 +468,7 @@
         "inputTokens": 15365,
         "outputTokens": 250
       },
-      "seconds": 0.006,
+      "seconds": 0.007,
       "steps": 10
     },
     {
@@ -476,7 +476,7 @@
       "model": "mock / scripted",
       "trials": [
         {
-          "score": 0.3333333333333333,
+          "score": 0.2727272727272727,
           "checks": [
             {
               "name": "Passes: good: a room that fits, with the right price",
@@ -522,19 +522,29 @@
               "name": "Fails: does not answer the question",
               "passed": false,
               "detail": "pass"
+            },
+            {
+              "name": "Fails: real: says 'booked for part of that time' when the booking covers the whole stay",
+              "passed": false,
+              "detail": "pass"
+            },
+            {
+              "name": "Fails: real: offers to hold the dates, which the assistant cannot do",
+              "passed": false,
+              "detail": "pass"
             }
           ],
           "usage": {
-            "inputTokens": 4193,
-            "outputTokens": 198
+            "inputTokens": 5173,
+            "outputTokens": 242
           },
-          "steps": 9,
+          "steps": 11,
           "seconds": 0.001
         }
       ],
-      "mean": 0.3333333333333333,
-      "min": 0.3333333333333333,
-      "max": 0.3333333333333333,
+      "mean": 0.2727272727272727,
+      "min": 0.2727272727272727,
+      "max": 0.2727272727272727,
       "spread": 0,
       "checks": [
         {
@@ -590,14 +600,26 @@
           "passed": 0,
           "of": 1,
           "detail": "pass"
+        },
+        {
+          "name": "Fails: real: says 'booked for part of that time' when the booking covers the whole stay",
+          "passed": 0,
+          "of": 1,
+          "detail": "pass"
+        },
+        {
+          "name": "Fails: real: offers to hold the dates, which the assistant cannot do",
+          "passed": 0,
+          "of": 1,
+          "detail": "pass"
         }
       ],
       "tokens": {
-        "inputTokens": 4193,
-        "outputTokens": 198
+        "inputTokens": 5173,
+        "outputTokens": 242
       },
       "seconds": 0.001,
-      "steps": 9
+      "steps": 11
     }
   ]
 }

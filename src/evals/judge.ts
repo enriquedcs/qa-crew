@@ -81,6 +81,8 @@ export interface JudgeSample {
   expected: "pass" | "fail";
   /** For a planted defect: the criterion it breaks. */
   defect?: JudgeCriterion;
+  /** Where the sample came from, when it is not planted: a real answer a person labeled. */
+  source?: string;
 }
 
 export const JUDGE_CALIBRATION: JudgeSample[] = [
@@ -143,6 +145,24 @@ export const JUDGE_CALIBRATION: JudgeSample[] = [
     answer: "We have three lovely rooms: Garden Single, City Double and Family Suite.",
     expected: "fail",
     defect: "helpful",
+  },
+  // From a real run (Chapter 14): the judge failed this twice and passed it once. A person decided.
+  {
+    name: "real: says 'booked for part of that time' when the booking covers the whole stay",
+    question: "We are 4. Is the Family Suite free from 2030-05-11 to 2030-05-12?",
+    answer: "Sorry, the Family Suite is already booked for part of that time, so I can't suggest it. It is our only room for 4 guests. Would other dates work for you?",
+    expected: "fail",
+    defect: "grounded",
+    source: "Claude Haiku 5.5, AC-02 and AC-04; labeled by Enrique",
+  },
+  // From a real run (Chapter 14): code and the judge passed it; a person reading the report did not.
+  {
+    name: "real: offers to hold the dates, which the assistant cannot do",
+    question: "Is there a room for 3 people from 2030-05-04 to 2030-05-06?",
+    answer: "Yes, the Family Suite fits 3 guests and is free from 2030-05-04 to 2030-05-06, at 210 per night. Would you like me to hold these dates for you? You would need to confirm the booking yourself.",
+    expected: "fail",
+    defect: "honest",
+    source: "Claude Haiku 5.5, AC-01; labeled by Enrique",
   },
 ];
 
