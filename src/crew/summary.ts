@@ -2,6 +2,7 @@ import { existsSync } from "node:fs";
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 import type { ExecutionReport, Review, Risk, RiskMap, TestPlan, TriageItem } from "./contracts.ts";
+import { attentionMinutes, rankDecisions, type DecisionKind } from "./attention.ts";
 import { changedSinceApproval, runDir, type CrewRun, type RunStore } from "./orchestrator.ts";
 
 // The run summary is the test lead's inbox: what the crew did, what it cost,
@@ -23,14 +24,20 @@ function duration(start?: string, end?: string): string {
 const tokens = (n: number) => (n >= 1000 ? `${(n / 1000).toFixed(1)}k` : String(n));
 
 export interface Decision {
-  kind: "approve" | "file-bug" | "linked" | "fix-test" | "flaky" | "investigate" | "answer-question" | "uncovered-risk" | "promote-test" | "unverified";
+  kind: DecisionKind;
   text: string;
+  /** Estimated minutes of a person's attention (Chapter 13). */
+  minutes: number;
 }
 
-/** Everything a human still has to decide, read from the run's files. */
+/** Everything a human still has to decide, read from the run's files, most important first. */
 export async function decisionsFor(store: RunStore, run: CrewRun): Promise<Decision[]> {
+  return rankDecisions(await collectDecisions(store, run));
+}
+
+async function collectDecisions(store: RunStore, run: CrewRun): Promise<Omit<Decision, "minutes">[]> {
   const dir = runDir(store, run.id);
-  const out: Decision[] = [];
+  const out: Omit<Decision, "minutes">[] = [];
 
   if (run.status === "waiting-for-approval" && run.waitingAt) {
     const stage = run.stages.find((s) => s.name === run.waitingAt);
@@ -122,9 +129,11 @@ export async function renderRunSummary(store: RunStore, run: CrewRun, titles: Re
   }
 
   const decisions = await decisionsFor(store, run);
-  lines.push("", "## Your decisions", "");
+  const minutes = attentionMinutes(decisions);
+  lines.push("", `## Your decisions${decisions.length ? ` (about ${minutes} minutes)` : ""}`, "");
   if (decisions.length === 0) lines.push("Nothing waits for you.");
-  for (const d of decisions) lines.push(`- [ ] ${d.text}`);
+  else lines.push("Most important first. The minutes are estimates of careful review, not of skimming.", "");
+  for (const d of decisions) lines.push(`- [ ] (${d.minutes} min) ${d.text}`);
 
   const riskMap = await readJson<RiskMap>(dir, "risk-map.json");
   const files = [...new Set(run.stages.flatMap((s) => s.artifacts))];

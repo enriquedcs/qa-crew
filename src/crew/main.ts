@@ -11,7 +11,8 @@
 //   QA_MODEL_PROVIDER=mock npm run crew -- start --auto     # the whole crew with scripted models
 //
 // Options: --run <id> (default: the latest run), --max-tokens <n>, --cases TC-01,TC-02
-// Per-role models: QA_ANALYST_MODEL, QA_DESIGNER_MODEL, QA_EXECUTOR_MODEL, QA_TRIAGER_MODEL.
+// Per-role models: QA_ANALYST_MODEL, QA_DESIGNER_MODEL, QA_EXECUTOR_MODEL, QA_TRIAGER_MODEL, QA_REVIEWER_MODEL.
+// At most QA_CREW_MAX_WAITING runs (default 2) may wait for a person at once; start refuses another (Chapter 13).
 //
 // Every run lives in out/crew/<id>/: run.json (state), events.jsonl (trace), the agents' files,
 // and summary.md, the list of decisions that are still yours.
@@ -20,6 +21,7 @@ import os from "node:os";
 import { loadEnv, writeArtifact } from "../agents/shared.ts";
 import { advance, approve, createRun, latestRunId, loadRun, saveRun, type CrewRun, type RunStore } from "./orchestrator.ts";
 import { crewStages } from "./stages.ts";
+import { attentionMinutes, DEFAULT_MAX_WAITING, wipLimitReason } from "./attention.ts";
 import { decisionsFor, renderRunSummary } from "./summary.ts";
 
 loadEnv();
@@ -51,8 +53,8 @@ async function report(run: CrewRun): Promise<void> {
   if (run.error) console.log(run.error);
   const decisions = await decisionsFor(store, run);
   if (decisions.length > 0) {
-    console.log("\nYour decisions:");
-    for (const d of decisions) console.log(`  - ${d.text}`);
+    console.log(`\nYour decisions (about ${attentionMinutes(decisions)} minutes, most important first):`);
+    for (const d of decisions) console.log(`  - (${d.minutes} min) ${d.text}`);
   }
   console.log(`\nSummary: ${file}`);
 }
@@ -63,6 +65,13 @@ async function main() {
   let run: CrewRun;
   if (command === "start") {
     const auto = args.includes("--auto");
+    // A work-in-progress limit for agents (Chapter 13): no new run while others wait for a person.
+    const refused = await wipLimitReason(store, Number(process.env.QA_CREW_MAX_WAITING ?? DEFAULT_MAX_WAITING));
+    if (refused) {
+      console.error(refused);
+      process.exitCode = 1;
+      return;
+    }
     run = await createRun(store, {
       feature: positional[0] ?? "booking-rules",
       stages,

@@ -25,6 +25,7 @@ const options = {
   stages: () => crewStages({ verbose: false }),
   allowAutoGates: process.env.QA_CREW_ALLOW_AUTO_GATES === "true",
   maxTokens: Number(process.env.QA_CREW_MAX_TOKENS ?? 400_000),
+  maxWaiting: Number(process.env.QA_CREW_MAX_WAITING ?? 2),
 };
 
 serveStdio(() => createCrewServer(options));

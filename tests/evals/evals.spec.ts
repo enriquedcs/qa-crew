@@ -6,7 +6,7 @@ import { curateTestPlan } from "../../src/agents/designer/curate.ts";
 import { scriptedDesigner } from "../../src/agents/designer/demo.ts";
 import type { ExecutionReport, RiskMap, TestCase, TestPlan, TriageItem } from "../../src/crew/contracts.ts";
 import type { MockTurn } from "../../src/llm/index.ts";
-import { renderComparison, renderScorecard, summarize, unstable, type Scorecard, type Trial } from "../../src/evals/scorecard.ts";
+import { regressions, renderComparison, renderScorecard, summarize, unstable, type Scorecard, type Trial } from "../../src/evals/scorecard.ts";
 import { capacityBoundary, scoreExecution, scoreRiskMap, scoreTestPlan, scoreTriage } from "../../src/evals/scorers.ts";
 
 const submitted = <T>(turns: MockTurn[]): T => {
@@ -138,5 +138,20 @@ test.describe("scorecard", () => {
     const text = renderComparison(card("a", trial([true, true])), card("b", trial([true, false])));
     expect(text).toContain("analyst · check 2: a 1/1, b 0/1");
     expect(text).not.toContain("check 1:");
+  });
+
+  test("a regression: the mean dropped too far, or a check that always passed now fails", () => {
+    const card = (trials: Trial[]): Scorecard => ({ label: "x", createdAt: "now", trials: trials.length, suites: [summarize("analyst", "m", trials)] });
+    const before = card([trial([true, true, true, true]), trial([true, true, true, false])]);
+    expect(regressions(before, before)).toEqual([]);
+
+    // One trial loses check 1, which always passed: a regression, even though the mean moves little.
+    const wobble = card([trial([true, true, true, true]), trial([false, true, true, false])]);
+    expect(regressions(before, wobble, 0.2)).toEqual(["analyst · check 1: always passed before, now 1/2"]);
+
+    // check 4 was already unstable: losing it is not a new regression, but the mean drop is.
+    const worse = card([trial([true, true, true, false]), trial([true, true, true, false])]);
+    expect(regressions(before, worse, 0)).toEqual(["analyst: mean 88% -> 75% (tolerance 0%)"]);
+    expect(regressions(before, worse, 0.2)).toEqual([]);
   });
 });

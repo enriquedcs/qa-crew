@@ -1,0 +1,94 @@
+# Chapter 13: a crew run with a real model, with its two gates as GitHub environment approvals.
+#
+# Each gate is a job in the "qa-crew-gate" environment. Set it up once, in Settings > Environments,
+# with the people who may approve as required reviewers. GitHub records who approved, and when.
+# The run folder travels between jobs as an artifact, with its approvals and their fingerprints.
+#
+# A gate here can approve or reject, not edit. To edit a risk map or a test plan before approving,
+# download the artifact and continue the run locally with npm run crew -- approve.
+name: Crew run
+
+on:
+  workflow_dispatch:
+    inputs:
+      feature:
+        description: "Requirements document"
+        default: "booking-rules"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: crew
+  cancel-in-progress: false
+
+env:
+  CI: "true"
+  QA_MODEL_PROVIDER: ${{ vars.QA_MODEL_PROVIDER || 'anthropic' }}
+  QA_MODEL: ${{ vars.QA_MODEL || 'claude-sonnet-5-5' }}
+  QA_MODEL_BASE_URL: ${{ vars.QA_MODEL_BASE_URL }}
+  QA_MODEL_API_KEY: ${{ secrets.QA_MODEL_API_KEY }}
+
+jobs:
+  analyze:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: npm }
+      - run: npm ci
+      - run: npm run crew -- start ${{ inputs.feature }}
+      - run: cat out/crew/*/summary.md >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v4
+        with: { name: crew-run-1, path: out/crew/, include-hidden-files: true }
+
+  design:
+    needs: analyze
+    environment: qa-crew-gate
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: npm }
+      - run: npm ci
+      - uses: actions/download-artifact@v4
+        with: { name: crew-run-1, path: out/crew/ }
+      - name: Approve the risk map and continue
+        run: |
+          npm run crew -- approve --note "Approved in GitHub, run ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+        env:
+          QA_REVIEWER: "GitHub environment qa-crew-gate"
+      - run: cat out/crew/*/summary.md >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v4
+        with: { name: crew-run-2, path: out/crew/, include-hidden-files: true }
+
+  execute:
+    needs: design
+    environment: qa-crew-gate
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: npm }
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - uses: actions/download-artifact@v4
+        with: { name: crew-run-2, path: out/crew/ }
+      - name: Approve the test plan and continue
+        run: |
+          npm run crew -- approve --note "Approved in GitHub, run ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+        env:
+          QA_REVIEWER: "GitHub environment qa-crew-gate"
+      - run: cat out/crew/*/summary.md >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: crew-run-final
+          path: |
+            out/crew/
+            tests/generated/
+            issues/
+          include-hidden-files: true

@@ -134,3 +134,25 @@ export function renderComparison(a: Scorecard, b: Scorecard): string {
   if (differences === 0) lines.push("- none");
   return lines.join("\n") + "\n";
 }
+
+/**
+ * Chapter 13: what got worse since a baseline scorecard. Two kinds of regression:
+ * a suite whose mean dropped by more than the tolerance, and a check that passed in every
+ * baseline trial and now fails in at least one. The second catches a capability you could
+ * count on and now cannot, even when the average barely moves.
+ */
+export function regressions(baseline: Scorecard, current: Scorecard, tolerance = 0.1): string[] {
+  const found: string[] = [];
+  for (const now of current.suites) {
+    const before = baseline.suites.find((s) => s.suite === now.suite);
+    if (!before) continue;
+    if (before.mean - now.mean > tolerance + 1e-9) {
+      found.push(`${now.suite}: mean ${pct(before.mean)} -> ${pct(now.mean)} (tolerance ${pct(tolerance)})`);
+    }
+    for (const b of before.checks.filter((c) => c.of > 0 && c.passed === c.of)) {
+      const c = now.checks.find((x) => x.name === b.name);
+      if (c && c.passed < c.of) found.push(`${now.suite} · ${b.name}: always passed before, now ${c.passed}/${c.of}${c.detail ? ` (${c.detail})` : ""}`);
+    }
+  }
+  return found;
+}

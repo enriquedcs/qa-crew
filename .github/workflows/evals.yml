@@ -1,0 +1,58 @@
+# Chapter 13: evaluate the crew with a real model. Costs tokens, so it does not run on every push:
+# by hand (to try a model or a prompt), and once a week (to notice when a provider changes a model).
+name: Evals
+
+on:
+  workflow_dispatch:
+    inputs:
+      suites:
+        description: "Suites, comma separated (analyst,designer,triager,reviewer,executor)"
+        default: "analyst,designer,triager,reviewer"
+      trials:
+        description: "Trials per suite"
+        default: "3"
+  schedule:
+    - cron: "17 6 * * 1" # Mondays, 06:17 UTC
+
+permissions:
+  contents: read
+
+# One eval at a time: two runs in parallel share the same rate limits and quota.
+concurrency:
+  group: evals
+  cancel-in-progress: false
+
+jobs:
+  evals:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    env:
+      CI: "true"
+      QA_MODEL_PROVIDER: ${{ vars.QA_MODEL_PROVIDER || 'anthropic' }}
+      QA_MODEL: ${{ vars.QA_MODEL || 'claude-sonnet-5-5' }}
+      QA_MODEL_BASE_URL: ${{ vars.QA_MODEL_BASE_URL }}
+      QA_MODEL_API_KEY: ${{ secrets.QA_MODEL_API_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+
+      - name: Evals
+        run: |
+          SUITES="${{ inputs.suites || 'analyst,designer,triager,reviewer' }}"
+          TRIALS="${{ inputs.trials || '3' }}"
+          BASELINE="evals/baselines/${QA_MODEL}.json"
+          ARGS="--suite $SUITES --trials $TRIALS --label $QA_MODEL --fail-under 0.8"
+          if [ -f "$BASELINE" ]; then ARGS="$ARGS --baseline $BASELINE"; else echo "No baseline at $BASELINE: checking --fail-under only."; fi
+          npm run eval -- $ARGS
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: scorecard
+          path: out/evals/
+          retention-days: 90

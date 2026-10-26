@@ -1,0 +1,475 @@
+{
+  "label": "mock-baseline",
+  "createdAt": "2026-10-26T18:43:48.249Z",
+  "trials": 1,
+  "suites": [
+    {
+      "suite": "analyst",
+      "model": "mock / scripted",
+      "trials": [
+        {
+          "score": 0.8888888888888888,
+          "checks": [
+            {
+              "name": "Finds: The API ignores room capacity",
+              "passed": true,
+              "detail": "R1 The API books more guests than a room fits"
+            },
+            {
+              "name": "Finds: Stays that start in the past",
+              "passed": true,
+              "detail": "R2 Stays that start in the past are accepted, and 'today' is undefined"
+            },
+            {
+              "name": "Finds: Overlapping or simultaneous bookings",
+              "passed": true,
+              "detail": "R3 Two simultaneous requests double-book a room"
+            },
+            {
+              "name": "Finds: Off-by-one on the check-out day",
+              "passed": true,
+              "detail": "R4 Off-by-one errors around check-out day"
+            },
+            {
+              "name": "Finds: Cancelling a booking",
+              "passed": true,
+              "detail": "R5 Anyone with a booking id can cancel someone else's booking"
+            },
+            {
+              "name": "Rates capacity high",
+              "passed": true,
+              "detail": "R1 scored 20 (high)"
+            },
+            {
+              "name": "Asks whose 'today' counts (FR-007)",
+              "passed": true,
+              "detail": "Whose 'today' counts: the hotel's, the guest's or UTC?"
+            },
+            {
+              "name": "Cites only requirements that exist",
+              "passed": false,
+              "detail": "R6: booking-rules:FR-011"
+            },
+            {
+              "name": "Stays focused (5-10 risks)",
+              "passed": true,
+              "detail": "6 risks"
+            }
+          ],
+          "usage": {
+            "inputTokens": 19665,
+            "outputTokens": 1044
+          },
+          "steps": 4,
+          "seconds": 0.097
+        }
+      ],
+      "mean": 0.8888888888888888,
+      "min": 0.8888888888888888,
+      "max": 0.8888888888888888,
+      "spread": 0,
+      "checks": [
+        {
+          "name": "Finds: The API ignores room capacity",
+          "passed": 1,
+          "of": 1,
+          "detail": "R1 The API books more guests than a room fits"
+        },
+        {
+          "name": "Finds: Stays that start in the past",
+          "passed": 1,
+          "of": 1,
+          "detail": "R2 Stays that start in the past are accepted, and 'today' is undefined"
+        },
+        {
+          "name": "Finds: Overlapping or simultaneous bookings",
+          "passed": 1,
+          "of": 1,
+          "detail": "R3 Two simultaneous requests double-book a room"
+        },
+        {
+          "name": "Finds: Off-by-one on the check-out day",
+          "passed": 1,
+          "of": 1,
+          "detail": "R4 Off-by-one errors around check-out day"
+        },
+        {
+          "name": "Finds: Cancelling a booking",
+          "passed": 1,
+          "of": 1,
+          "detail": "R5 Anyone with a booking id can cancel someone else's booking"
+        },
+        {
+          "name": "Rates capacity high",
+          "passed": 1,
+          "of": 1,
+          "detail": "R1 scored 20 (high)"
+        },
+        {
+          "name": "Asks whose 'today' counts (FR-007)",
+          "passed": 1,
+          "of": 1,
+          "detail": "Whose 'today' counts: the hotel's, the guest's or UTC?"
+        },
+        {
+          "name": "Cites only requirements that exist",
+          "passed": 0,
+          "of": 1,
+          "detail": "R6: booking-rules:FR-011"
+        },
+        {
+          "name": "Stays focused (5-10 risks)",
+          "passed": 1,
+          "of": 1,
+          "detail": "6 risks"
+        }
+      ],
+      "tokens": {
+        "inputTokens": 19665,
+        "outputTokens": 1044
+      },
+      "seconds": 0.097,
+      "steps": 4
+    },
+    {
+      "suite": "designer",
+      "model": "mock / scripted",
+      "trials": [
+        {
+          "score": 0.5714285714285714,
+          "checks": [
+            {
+              "name": "Covers every accepted risk",
+              "passed": true,
+              "detail": "5 of 5"
+            },
+            {
+              "name": "Tests both sides of the capacity boundary",
+              "passed": true,
+              "detail": "at capacity, accepted: TC-01; one over, rejected: TC-02"
+            },
+            {
+              "name": "Expects a back-to-back stay to succeed (FR-009)",
+              "passed": true,
+              "detail": "TC-08"
+            },
+            {
+              "name": "Holds the 'today' case until FR-007 is clarified",
+              "passed": false,
+              "detail": "TC-06 has an oracle nobody agreed on"
+            },
+            {
+              "name": "Every oracle names a status or a message",
+              "passed": true,
+              "detail": "all specific"
+            },
+            {
+              "name": "Every case traces to an accepted risk",
+              "passed": false,
+              "detail": "TC-11 -> R9"
+            },
+            {
+              "name": "Proposes no duplicate cases",
+              "passed": false,
+              "detail": "TC-03 duplicate of TC-02"
+            }
+          ],
+          "usage": {
+            "inputTokens": 18123,
+            "outputTokens": 1333
+          },
+          "steps": 4,
+          "seconds": 0.059
+        }
+      ],
+      "mean": 0.5714285714285714,
+      "min": 0.5714285714285714,
+      "max": 0.5714285714285714,
+      "spread": 0,
+      "checks": [
+        {
+          "name": "Covers every accepted risk",
+          "passed": 1,
+          "of": 1,
+          "detail": "5 of 5"
+        },
+        {
+          "name": "Tests both sides of the capacity boundary",
+          "passed": 1,
+          "of": 1,
+          "detail": "at capacity, accepted: TC-01; one over, rejected: TC-02"
+        },
+        {
+          "name": "Expects a back-to-back stay to succeed (FR-009)",
+          "passed": 1,
+          "of": 1,
+          "detail": "TC-08"
+        },
+        {
+          "name": "Holds the 'today' case until FR-007 is clarified",
+          "passed": 0,
+          "of": 1,
+          "detail": "TC-06 has an oracle nobody agreed on"
+        },
+        {
+          "name": "Every oracle names a status or a message",
+          "passed": 1,
+          "of": 1,
+          "detail": "all specific"
+        },
+        {
+          "name": "Every case traces to an accepted risk",
+          "passed": 0,
+          "of": 1,
+          "detail": "TC-11 -> R9"
+        },
+        {
+          "name": "Proposes no duplicate cases",
+          "passed": 0,
+          "of": 1,
+          "detail": "TC-03 duplicate of TC-02"
+        }
+      ],
+      "tokens": {
+        "inputTokens": 18123,
+        "outputTokens": 1333
+      },
+      "seconds": 0.059,
+      "steps": 4
+    },
+    {
+      "suite": "triager",
+      "model": "mock / scripted",
+      "trials": [
+        {
+          "score": 1,
+          "checks": [
+            {
+              "name": "past-checkin classified as product-bug",
+              "passed": true,
+              "detail": "product-bug (high)"
+            },
+            {
+              "name": "past-checkin's bug report cites FR-007",
+              "passed": true,
+              "detail": "cites booking-rules:FR-007"
+            },
+            {
+              "name": "capacity classified as product-bug",
+              "passed": true,
+              "detail": "product-bug (high)"
+            },
+            {
+              "name": "capacity is linked to ISSUE-0031, not filed again",
+              "passed": true,
+              "detail": "duplicate of ISSUE-0031"
+            },
+            {
+              "name": "book-from-form classified as test-bug",
+              "passed": true,
+              "detail": "test-bug (high)"
+            },
+            {
+              "name": "new-booking-row classified as flaky",
+              "passed": true,
+              "detail": "flaky (medium)"
+            }
+          ],
+          "usage": {
+            "inputTokens": 15796,
+            "outputTokens": 940
+          },
+          "steps": 7,
+          "seconds": 0.041
+        }
+      ],
+      "mean": 1,
+      "min": 1,
+      "max": 1,
+      "spread": 0,
+      "checks": [
+        {
+          "name": "past-checkin classified as product-bug",
+          "passed": 1,
+          "of": 1,
+          "detail": "product-bug (high)"
+        },
+        {
+          "name": "past-checkin's bug report cites FR-007",
+          "passed": 1,
+          "of": 1,
+          "detail": "cites booking-rules:FR-007"
+        },
+        {
+          "name": "capacity classified as product-bug",
+          "passed": 1,
+          "of": 1,
+          "detail": "product-bug (high)"
+        },
+        {
+          "name": "capacity is linked to ISSUE-0031, not filed again",
+          "passed": 1,
+          "of": 1,
+          "detail": "duplicate of ISSUE-0031"
+        },
+        {
+          "name": "book-from-form classified as test-bug",
+          "passed": 1,
+          "of": 1,
+          "detail": "test-bug (high)"
+        },
+        {
+          "name": "new-booking-row classified as flaky",
+          "passed": 1,
+          "of": 1,
+          "detail": "flaky (medium)"
+        }
+      ],
+      "tokens": {
+        "inputTokens": 15796,
+        "outputTokens": 940
+      },
+      "seconds": 0.041,
+      "steps": 7
+    },
+    {
+      "suite": "reviewer",
+      "model": "mock / scripted",
+      "trials": [
+        {
+          "score": 0.6,
+          "checks": [
+            {
+              "name": "Approves: clean: capacity, one request, full oracle",
+              "passed": true,
+              "detail": "approve"
+            },
+            {
+              "name": "Approves: clean: back-to-back stays, setup asserted",
+              "passed": true,
+              "detail": "approve"
+            },
+            {
+              "name": "Approves: clean: a past check-in, standing alone (it fails: the app has the bug)",
+              "passed": true,
+              "detail": "approve"
+            },
+            {
+              "name": "Catches: wrong reason: the overlap rule rejects the request (Chapter 7's TC-08)",
+              "passed": false,
+              "detail": "approve"
+            },
+            {
+              "name": "Catches: weakened oracle: asserts today's behavior instead of the requirement",
+              "passed": true,
+              "detail": "request-changes; blocker no-weakening (code), major oracle-complete (code)"
+            },
+            {
+              "name": "Catches: incomplete oracle: status only, the stored state is never checked",
+              "passed": true,
+              "detail": "request-changes; major oracle-complete (code)"
+            },
+            {
+              "name": "Catches: incomplete oracle: the quoted message is never checked",
+              "passed": true,
+              "detail": "request-changes; major oracle-complete (code)"
+            },
+            {
+              "name": "Catches: unchecked setup: the existing booking is never asserted",
+              "passed": false,
+              "detail": "approve"
+            },
+            {
+              "name": "Catches: wrong data: a room that fits 3 guests, so the capacity rule is never exercised",
+              "passed": false,
+              "detail": "approve"
+            },
+            {
+              "name": "Catches: not isolated: cancels a booking id another test created",
+              "passed": false,
+              "detail": "approve"
+            }
+          ],
+          "usage": {
+            "inputTokens": 15365,
+            "outputTokens": 250
+          },
+          "steps": 10,
+          "seconds": 0.003
+        }
+      ],
+      "mean": 0.6,
+      "min": 0.6,
+      "max": 0.6,
+      "spread": 0,
+      "checks": [
+        {
+          "name": "Approves: clean: capacity, one request, full oracle",
+          "passed": 1,
+          "of": 1,
+          "detail": "approve"
+        },
+        {
+          "name": "Approves: clean: back-to-back stays, setup asserted",
+          "passed": 1,
+          "of": 1,
+          "detail": "approve"
+        },
+        {
+          "name": "Approves: clean: a past check-in, standing alone (it fails: the app has the bug)",
+          "passed": 1,
+          "of": 1,
+          "detail": "approve"
+        },
+        {
+          "name": "Catches: wrong reason: the overlap rule rejects the request (Chapter 7's TC-08)",
+          "passed": 0,
+          "of": 1,
+          "detail": "approve"
+        },
+        {
+          "name": "Catches: weakened oracle: asserts today's behavior instead of the requirement",
+          "passed": 1,
+          "of": 1,
+          "detail": "request-changes; blocker no-weakening (code), major oracle-complete (code)"
+        },
+        {
+          "name": "Catches: incomplete oracle: status only, the stored state is never checked",
+          "passed": 1,
+          "of": 1,
+          "detail": "request-changes; major oracle-complete (code)"
+        },
+        {
+          "name": "Catches: incomplete oracle: the quoted message is never checked",
+          "passed": 1,
+          "of": 1,
+          "detail": "request-changes; major oracle-complete (code)"
+        },
+        {
+          "name": "Catches: unchecked setup: the existing booking is never asserted",
+          "passed": 0,
+          "of": 1,
+          "detail": "approve"
+        },
+        {
+          "name": "Catches: wrong data: a room that fits 3 guests, so the capacity rule is never exercised",
+          "passed": 0,
+          "of": 1,
+          "detail": "approve"
+        },
+        {
+          "name": "Catches: not isolated: cancels a booking id another test created",
+          "passed": 0,
+          "of": 1,
+          "detail": "approve"
+        }
+      ],
+      "tokens": {
+        "inputTokens": 15365,
+        "outputTokens": 250
+      },
+      "seconds": 0.003,
+      "steps": 10
+    }
+  ]
+}

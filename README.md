@@ -150,6 +150,23 @@ QA_MODEL_PROVIDER=mock npm run eval            # the scripted agents: no API key
 
 The inputs that come from a live run are frozen in `src/evals/fixtures/` (`npm run eval:freeze` records them again).
 
+## QA Crew in CI (Chapter 13)
+
+Three workflows in `.github/workflows/`:
+
+| Workflow | When | What |
+|---|---|---|
+| `ci.yml` | every push and pull request | typecheck, tests, the crew with scripted models, the eval harness against `evals/baselines/mock.json` |
+| `evals.yml` | by hand, and weekly | evals with a real model; fails under 80% or on a regression against `evals/baselines/<model>.json` |
+| `crew.yml` | by hand | a crew run with a real model; each gate is a job in the `qa-crew-gate` environment, approved by a person |
+
+For the real-model workflows, add the secret `QA_MODEL_API_KEY`, and optionally the variables `QA_MODEL_PROVIDER`,
+`QA_MODEL` and `QA_MODEL_BASE_URL`. For `crew.yml`, create the environment `qa-crew-gate` with required reviewers.
+
+The crew also treats your attention as a budget: every decision in a run summary has an estimated number of
+minutes, the most important come first, and `npm run crew` refuses to start a new run while two others wait
+for a person (`QA_CREW_MAX_WAITING`).
+
 ## Requirements and traceability
 
 Run `npm run trace` to see which requirements in `specs/` and `odd/tasks/` have tests, which do not, which test tags point at requirements that no longer exist, and which questions are still open. Add `-- --strict` in CI to fail the build on drift.

@@ -6,6 +6,8 @@
 //   npm run eval -- --suite executor              # the slow suite: writes tests and runs Playwright
 //   npm run eval -- --label flash-lite            # name the scorecard (default: the model)
 //   npm run eval -- --fail-under 0.8              # exit 1 if any suite scores below 80% (Chapter 13)
+//   npm run eval -- --baseline evals/baselines/sonnet.json   # exit 1 on a regression (Chapter 13)
+//   npm run eval -- --baseline ... --tolerance 0.05          # how far a suite's mean may drop (default 0.1)
 //   npm run eval -- --compare out/evals/a.json out/evals/b.json
 //
 //   QA_MODEL_PROVIDER=mock npm run eval           # the scripted agents: what the harness itself does
@@ -13,8 +15,9 @@
 //
 // Writes: out/evals/<label>.json and out/evals/<label>.md
 
+import { appendFile } from "node:fs/promises";
 import { modelForRole, loadEnv, readArtifact, writeArtifact } from "../agents/shared.ts";
-import { renderComparison, renderScorecard, scoreOf, summarize, type Scorecard, type Trial } from "./scorecard.ts";
+import { regressions, renderComparison, renderScorecard, scoreOf, summarize, type Scorecard, type Trial } from "./scorecard.ts";
 import { SUITES, connectSuiteTools } from "./suites.ts";
 
 loadEnv();
@@ -106,10 +109,28 @@ for (const s of card.suites) {
 }
 console.log(`\nScorecard: ${md}`);
 
+// ---- Gates (Chapter 13) ----
+
+const problems: string[] = [];
 if (failUnder !== undefined) {
-  const below = card.suites.filter((s) => s.mean < failUnder);
-  if (below.length > 0) {
-    console.log(`\nBelow ${Math.round(failUnder * 100)}%: ${below.map((s) => s.suite).join(", ")}`);
-    process.exit(1);
-  }
+  for (const s of card.suites.filter((s) => s.mean < failUnder)) problems.push(`${s.suite}: ${Math.round(s.mean * 100)}% is below ${Math.round(failUnder * 100)}%`);
+}
+const baselineFile = option("baseline");
+if (baselineFile) {
+  const tolerance = Number(option("tolerance") ?? 0.1);
+  problems.push(...regressions(await readArtifact<Scorecard>(baselineFile), card, tolerance));
+}
+for (const s of card.suites.filter((s) => s.trials.some((t) => t.error))) problems.push(`${s.suite}: ${s.trials.find((t) => t.error)?.error}`);
+
+// In GitHub Actions, the scorecard becomes the job summary: people read it without downloading anything.
+if (process.env.GITHUB_STEP_SUMMARY) {
+  const gate = problems.length ? `\n## Eval gate: failed\n\n${problems.map((p) => `- ${p}`).join("\n")}\n` : "\n## Eval gate: passed\n";
+  await appendFile(process.env.GITHUB_STEP_SUMMARY, renderScorecard(card) + gate);
+}
+
+if (problems.length > 0) {
+  console.log(`\nEval gate failed:\n${problems.map((p) => `  - ${p}`).join("\n")}`);
+  process.exit(1);
+} else if (failUnder !== undefined || baselineFile) {
+  console.log("\nEval gate passed.");
 }

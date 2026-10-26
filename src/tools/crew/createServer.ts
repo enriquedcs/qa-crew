@@ -7,6 +7,7 @@ import { renderBugReport } from "../../agents/triager/triager.ts";
 import type { TriageItem } from "../../crew/contracts.ts";
 import { advance, approve, createRun, latestRunId, loadRun, runDir, saveRun, type CrewRun, type RunStore, type Stage } from "../../crew/orchestrator.ts";
 import { decisionsFor, renderRunSummary } from "../../crew/summary.ts";
+import { DEFAULT_MAX_WAITING, wipLimitReason } from "../../crew/attention.ts";
 
 // qa-crew: the whole crew as an MCP server, for the tools your team already uses.
 // Claude Code, Cursor, Copilot or any MCP host can start a run, show what waits for you,
@@ -27,6 +28,8 @@ export interface CrewServerOptions {
   /** Run stages in the background and return at once (the default). Tests wait instead. */
   background?: boolean;
   maxTokens?: number;
+  /** How many runs may wait for a person at once (Chapter 13). Default 2. */
+  maxWaiting?: number;
 }
 
 type ToolResult = { content: { type: "text"; text: string }[]; isError?: boolean };
@@ -89,7 +92,7 @@ export function createCrewServer(options: CrewServerOptions): McpServer {
     const decisions = await decisionsFor(store, run);
     if (decisions.length > 0) {
       lines.push("", "Decisions for the person you are helping (do not make them yourself):");
-      for (const d of decisions) lines.push(`- ${d.text}`);
+      for (const d of decisions) lines.push(`- (${d.minutes} min) ${d.text}`);
     }
     lines.push("", `Full summary: crew://runs/${run.id}/summary.md`);
     return lines.join("\n");
@@ -161,6 +164,8 @@ export function createCrewServer(options: CrewServerOptions): McpServer {
       if (auto && !options.allowAutoGates) {
         return failure("Refused: a run started from an assistant must stop at its gates for a person. Start it without auto.");
       }
+      const refused = await wipLimitReason(store, options.maxWaiting ?? DEFAULT_MAX_WAITING);
+      if (refused) return failure(`Refused: ${refused}`);
       const stages = options.stages();
       const run = await createRun(store, {
         feature,

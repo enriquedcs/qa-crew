@@ -1,0 +1,56 @@
+# Chapter 13: every push and pull request. No API keys, no cost, no rate limits:
+# the tests, the whole crew with scripted models, and the eval harness against its baseline.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      CI: "true"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - run: npm run typecheck
+      - run: npm test
+
+      # The whole crew, scripted. --auto is fine here: no model makes a judgment,
+      # so there is nothing for a person to approve. With a real model, gates stay human.
+      - name: Crew run (scripted models)
+        run: npm run crew -- start --auto
+        env:
+          QA_MODEL_PROVIDER: mock
+
+      # The harness itself: scorers, fixtures and suites. A scripted agent always answers the
+      # same way, so any change in its scores is a change in the harness, never in a model.
+      - name: Evals (scripted models) against their baseline
+        run: npm run eval -- --trials 1 --baseline evals/baselines/mock.json --tolerance 0
+        env:
+          QA_MODEL_PROVIDER: mock
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: ci-results
+          path: |
+            playwright-report/
+            out/crew/
+            out/evals/
+          retention-days: 14

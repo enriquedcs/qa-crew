@@ -17,20 +17,22 @@ export type { MockClient, MockTurn } from "./mock.ts";
 export function createModelFromEnv(env: Record<string, string | undefined> = process.env): ModelClient {
   const provider = (env.QA_MODEL_PROVIDER ?? "anthropic").toLowerCase();
   const model = env.QA_MODEL;
+  // An empty variable means "not set": CI systems often pass unset values as empty strings.
+  const baseUrl = env.QA_MODEL_BASE_URL || undefined;
   if (!model) throw new Error("Set QA_MODEL to the model name you want to use (see .env.example).");
 
   switch (provider) {
     case "anthropic": {
       const apiKey = env.QA_MODEL_API_KEY;
       if (!apiKey) throw new Error("Set QA_MODEL_API_KEY for the anthropic provider.");
-      return createAnthropicClient({ apiKey, model, baseUrl: env.QA_MODEL_BASE_URL });
+      return createAnthropicClient({ apiKey, model, baseUrl });
     }
     case "openai":
       return createOpenAICompatibleClient({
-        apiKey: env.QA_MODEL_API_KEY,
+        apiKey: env.QA_MODEL_API_KEY || undefined,
         model,
-        baseUrl: env.QA_MODEL_BASE_URL,
-        provider: env.QA_MODEL_BASE_URL ? "openai-compatible" : "openai",
+        baseUrl,
+        provider: baseUrl ? "openai-compatible" : "openai",
       });
     default:
       throw new Error(`Unknown QA_MODEL_PROVIDER "${provider}". Use "anthropic" or "openai".`);
