@@ -7,7 +7,11 @@ import type { Classification, ExecutionReport } from "../crew/contracts.ts";
 // Golden sets are about what must be in the answer, never about its exact words.
 // Two good risk maps can be worded in a hundred ways; both must find the capacity bug.
 
-/** A risk the Analyst must find in booking-rules. A risk matches if it cites the requirement or its title matches. */
+/**
+ * A risk the Analyst must find in booking-rules. A risk matches when it cites the requirement
+ * AND its title is about the same problem: a time-zone risk on FR-007 is a real risk, but it is
+ * not the seeded bug (the API accepts stays in the past). Same requirement, different risk.
+ */
 export interface MustFind {
   name: string;
   requirement: string; // the suffix of the requirement id, e.g. FR-005
@@ -15,10 +19,10 @@ export interface MustFind {
 }
 
 export const ANALYST_MUST_FIND: MustFind[] = [
-  { name: "The API ignores room capacity", requirement: "FR-005", title: /capacit|more guests|overbook/i },
-  { name: "Stays that start in the past", requirement: "FR-007", title: /past|yesterday|today/i },
+  { name: "The API ignores room capacity", requirement: "FR-005", title: /capacit|guests|overbook|fits?\b/i },
+  { name: "Stays that start in the past", requirement: "FR-007", title: /past|yesterday|backdat|before today/i },
   { name: "Overlapping or simultaneous bookings", requirement: "FR-008", title: /overlap|double[- ]?book|simultaneous|concurren|race/i },
-  { name: "Off-by-one on the check-out day", requirement: "FR-009", title: /check-?out day|back-to-back|off-by-one|adjacent|same day/i },
+  { name: "Off-by-one on the check-out day", requirement: "FR-009", title: /check-?out|back-to-back|off-by-one|adjacent|same day|boundar/i },
   { name: "Cancelling a booking", requirement: "FR-010", title: /cancel/i },
 ];
 

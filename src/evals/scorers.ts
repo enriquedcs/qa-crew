@@ -29,7 +29,7 @@ const cites = (ids: string[], requirement: string) => ids.some((id) => id.endsWi
 // ---------------------------------------------------------------------------
 
 export function matchRisk(risks: Risk[], target: MustFind): Risk | undefined {
-  return risks.find((r) => cites(r.requirementIds, target.requirement)) ?? risks.find((r) => target.title.test(r.title));
+  return risks.find((r) => cites(r.requirementIds, target.requirement) && target.title.test(r.title));
 }
 
 export function scoreRiskMap(map: RiskMap | undefined): Check[] {

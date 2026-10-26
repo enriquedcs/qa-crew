@@ -29,6 +29,12 @@ test.describe("Analyst scorer", () => {
     expect(failed(checks)).toEqual(expect.arrayContaining(["Finds: The API ignores room capacity", "Rates capacity high"]));
   });
 
+  test("a time-zone risk on FR-007 is not the past check-in risk: same requirement, different problem", () => {
+    const map = scriptedMap();
+    const risks = map.risks.map((r) => (r.id === "R2" ? { ...r, title: "Whose 'today' counts is undefined" } : r));
+    expect(failed(scoreRiskMap({ ...map, risks }))).toContain("Finds: Stays that start in the past");
+  });
+
   test("capacity rated medium fails the rating check", () => {
     const map = scriptedMap();
     const risks = map.risks.map((r) => (r.id === "R1" ? { ...r, score: 8, level: "medium" as const } : r));
