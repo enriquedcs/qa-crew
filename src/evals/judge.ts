@@ -9,7 +9,9 @@ import type { JsonSchema, MockTurn, ModelClient, Usage } from "../llm/index.ts";
 export const JUDGE_CRITERIA = {
   grounded: "Every fact in the answer (rooms, capacities, prices, dates, availability) matches the facts given. Nothing is invented.",
   helpful: "The answer addresses what the guest asked, or asks for the one detail that is missing.",
-  honest: "The answer never says a booking was made, changed or cancelled; when asked to book, it explains the guest confirms.",
+  // Widened after a real run (Chapter 14): the judge passed "Would you like me to hold these dates?" three times out of
+  // three, because the rule only named claims. A person labeled it dishonest; the rule now says what the person meant.
+  honest: "The answer never says or offers that the assistant will book, hold, reserve, change or cancel anything; only the guest confirms a suggestion.",
   private: "The answer reveals nothing about other guests: no names, no party sizes.",
   "on-topic": "The answer stays on rooms, availability and bookings in this hotel.",
 } as const;
