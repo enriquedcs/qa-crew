@@ -1,0 +1,97 @@
+[
+  {
+    "failure": {
+      "file": "tests/triage-demo/past-checkin.spec.ts",
+      "title": "a stay that started yesterday is rejected",
+      "error": "Error: expect(received).toBe(expected) // Object.is equality\n\nExpected: 400\nReceived: 201"
+    },
+    "runs": [
+      {
+        "status": "failed",
+        "error": "Error: expect(received).toBe(expected) // Object.is equality\n\nExpected: 400\nReceived: 201"
+      },
+      {
+        "status": "failed",
+        "error": "Error: expect(received).toBe(expected) // Object.is equality\n\nExpected: 400\nReceived: 201"
+      },
+      {
+        "status": "failed",
+        "error": "Error: expect(received).toBe(expected) // Object.is equality\n\nExpected: 400\nReceived: 201"
+      }
+    ],
+    "consistent": true,
+    "appHealthy": true,
+    "testSource": "import { test, expect } from \"../support/fixtures.ts\";\n\ntest(\"a stay that started yesterday is rejected\", { tag: [\"@booking-rules:FR-007\"] }, async ({ bookingApi }) => {\n  const res = await bookingApi.create({ roomId: \"r2\", guests: 1, checkInDays: -1, checkOutDays: 1 });\n\n  expect(res.status()).toBe(400);\n  expect(await bookingApi.list()).toHaveLength(0);\n});\n"
+  },
+  {
+    "failure": {
+      "file": "tests/triage-demo/capacity.spec.ts",
+      "title": "the API rejects 3 guests in the City Double",
+      "error": "Error: expect(received).toBe(expected) // Object.is equality\n\nExpected: 400\nReceived: 201"
+    },
+    "runs": [
+      {
+        "status": "failed",
+        "error": "Error: expect(received).toBe(expected) // Object.is equality\n\nExpected: 400\nReceived: 201"
+      },
+      {
+        "status": "failed",
+        "error": "Error: expect(received).toBe(expected) // Object.is equality\n\nExpected: 400\nReceived: 201"
+      },
+      {
+        "status": "failed",
+        "error": "Error: expect(received).toBe(expected) // Object.is equality\n\nExpected: 400\nReceived: 201"
+      }
+    ],
+    "consistent": true,
+    "appHealthy": true,
+    "testSource": "import { test, expect } from \"../support/fixtures.ts\";\n\ntest(\"the API rejects 3 guests in the City Double\", { tag: [\"@booking-rules:FR-005\"] }, async ({ bookingApi }) => {\n  const res = await bookingApi.create({ roomId: \"r2\", guests: 3 });\n\n  expect(res.status()).toBe(400);\n  expect(await bookingApi.list()).toHaveLength(0);\n});\n"
+  },
+  {
+    "failure": {
+      "file": "tests/triage-demo/book-from-form.spec.ts",
+      "title": "a guest books a room from the form",
+      "error": "TimeoutError: locator.click: Timeout 3000ms exceeded.\nCall log:\n  - waiting for getByRole('button', { name: 'Book now' })"
+    },
+    "runs": [
+      {
+        "status": "failed",
+        "error": "TimeoutError: locator.click: Timeout 3000ms exceeded.\nCall log:\n  - waiting for getByRole('button', { name: 'Book now' })"
+      },
+      {
+        "status": "failed",
+        "error": "TimeoutError: locator.click: Timeout 3000ms exceeded.\nCall log:\n  - waiting for getByRole('button', { name: 'Book now' })"
+      },
+      {
+        "status": "failed",
+        "error": "TimeoutError: locator.click: Timeout 3000ms exceeded.\nCall log:\n  - waiting for getByRole('button', { name: 'Book now' })"
+      }
+    ],
+    "consistent": true,
+    "appHealthy": true,
+    "testSource": "import { test, expect } from \"../support/fixtures.ts\";\n\ntest(\"a guest books a room from the form\", { tag: [\"@booking-rules:FR-002\"] }, async ({ bookingApi, bookingPage, page }) => {\n  await bookingPage.open();\n  await bookingPage.guestName.fill(\"Ana Prueba\");\n  await bookingPage.room.selectOption(\"r2\");\n  await bookingPage.guests.fill(\"2\");\n  await bookingPage.checkIn.fill(\"2031-03-01\");\n  await bookingPage.checkOut.fill(\"2031-03-03\");\n  await page.getByRole(\"button\", { name: \"Book now\" }).click({ timeout: 3000 });\n\n  await expect(bookingPage.status).toHaveText(\"Booking confirmed for Ana Prueba.\");\n  expect(await bookingApi.list()).toHaveLength(1);\n});\n"
+  },
+  {
+    "failure": {
+      "file": "tests/triage-demo/new-booking-row.spec.ts",
+      "title": "a new booking appears in the bookings table",
+      "error": "Error: expect(locator).toContainText(expected) failed\n\nLocator: getByRole('table', { name: 'Bookings' })\nTimeout: 500ms\n- Expected substring  - 1\n+ Received string     + 6\n\n- Ana Prueba\n+\n+         \n+           GuestRoomGuestsCheck-inCheck-out\n+         \n+         \n+       \n\nCall log:\n  - Expect \"toContainText\" getByRole('table', { name: 'Bookings' }) with timeout 500ms\n  - waiting for getByRole('table', { name: 'Bookings' })\n    6 × locator resolved to <table aria-label=\"Bookings\">…</table>\n      - unexpected value \"\n        \n          GuestRoomGuestsCheck-inCheck-out\n        \n        \n      \""
+    },
+    "runs": [
+      {
+        "status": "failed",
+        "error": "Error: expect(locator).toContainText(expected) failed\n\nLocator: getByRole('table', { name: 'Bookings' })\nTimeout: 500ms\n- Expected substring  - 1\n+ Received string     + 6\n\n- Ana Prueba\n+\n+         \n+           GuestRoomGuestsCheck-inCheck-out\n+         \n+         \n+       \n\nCall log:\n  - Expect \"toContainText\" getByRole('table', { name: 'Bookings' }) with timeout 500ms\n  - waiting for getByRole('table', { name: 'Bookings' })\n    6 × locator resolved to <table aria-label=\"Bookings\">…</table>\n      - unexpected value \"\n        \n          GuestRoomGuestsCheck-inCheck-out\n        \n        \n      \""
+      },
+      {
+        "status": "passed"
+      },
+      {
+        "status": "failed",
+        "error": "Error: expect(locator).toContainText(expected) failed\n\nLocator: getByRole('table', { name: 'Bookings' })\nTimeout: 500ms\n- Expected substring  - 1\n+ Received string     + 6\n\n- Ana Prueba\n+\n+         \n+           GuestRoomGuestsCheck-inCheck-out\n+         \n+         \n+       \n\nCall log:\n  - Expect \"toContainText\" getByRole('table', { name: 'Bookings' }) with timeout 500ms\n  - waiting for getByRole('table', { name: 'Bookings' })\n    6 × locator resolved to <table aria-label=\"Bookings\">…</table>\n      - unexpected value \"\n        \n          GuestRoomGuestsCheck-inCheck-out\n        \n        \n      \""
+      }
+    ],
+    "consistent": false,
+    "appHealthy": true,
+    "testSource": "import { readFileSync, writeFileSync } from \"node:fs\";\nimport os from \"node:os\";\nimport path from \"node:path\";\nimport { test, expect } from \"../support/fixtures.ts\";\n\n// Simulated flakiness, made deterministic so the book's example is reproducible:\n// on every other run the list of bookings is slow to load (1.5 s), and the test only\n// waits 500 ms for the new row. Real flaky tests come from exactly this kind of race,\n// a wait that is usually long enough, without the counter.\nconst counterFile = path.join(os.tmpdir(), \"qa-crew-flaky-demo.txt\");\nfunction nextRun(): number {\n  let n = 0;\n  try {\n    n = Number(readFileSync(counterFile, \"utf8\")) || 0;\n  } catch {\n    // first run\n  }\n  writeFileSync(counterFile, String(n + 1));\n  return n + 1;\n}\n\ntest(\"a new booking appears in the bookings table\", { tag: [\"@booking-rules:FR-002\"] }, async ({ bookingApi, bookingPage, page }) => {\n  const slowBackend = nextRun() % 2 === 1;\n  if (slowBackend) {\n    await page.route(\"**/api/bookings\", async (route) => {\n      if (route.request().method() === \"GET\") await new Promise((r) => setTimeout(r, 1500));\n      await route.continue();\n    });\n  }\n  await bookingApi.reset();\n  await bookingPage.open();\n  await bookingPage.book({ guestName: \"Ana Prueba\", roomId: \"r1\", guests: 1 });\n\n  await expect(bookingPage.bookings).toContainText(\"Ana Prueba\", { timeout: 500 });\n});\n"
+  }
+]

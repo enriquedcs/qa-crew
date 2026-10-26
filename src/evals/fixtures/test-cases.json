@@ -1,0 +1,85 @@
+[
+  {
+    "layer": "api",
+    "preconditions": [
+      "Test data is reset"
+    ],
+    "id": "TC-02",
+    "riskIds": [
+      "R1"
+    ],
+    "requirementIds": [
+      "booking-rules:FR-005"
+    ],
+    "technique": "boundary-values",
+    "priority": "p1",
+    "steps": [
+      "POST /api/bookings for room r2 with 3 guests",
+      "GET /api/bookings"
+    ],
+    "data": {
+      "roomId": "r2",
+      "guests": 3,
+      "checkInDays": 30,
+      "checkOutDays": 32
+    },
+    "expected": "400 Bad Request and no booking is stored",
+    "title": "The API rejects 3 guests for a room of capacity 2"
+  },
+  {
+    "layer": "api",
+    "preconditions": [
+      "Test data is reset"
+    ],
+    "id": "TC-05",
+    "riskIds": [
+      "R2"
+    ],
+    "requirementIds": [
+      "booking-rules:FR-007"
+    ],
+    "technique": "boundary-values",
+    "priority": "p1",
+    "steps": [
+      "POST /api/bookings with check-in yesterday"
+    ],
+    "data": {
+      "roomId": "r2",
+      "guests": 1,
+      "checkInDays": -1,
+      "checkOutDays": 1
+    },
+    "expected": "400 Bad Request and no booking is stored",
+    "title": "A stay that started yesterday is rejected"
+  },
+  {
+    "layer": "api",
+    "preconditions": [
+      "Room r2 is booked from day 5 to day 7"
+    ],
+    "id": "TC-08",
+    "riskIds": [
+      "R4"
+    ],
+    "requirementIds": [
+      "booking-rules:FR-009"
+    ],
+    "technique": "boundary-values",
+    "priority": "p2",
+    "steps": [
+      "POST /api/bookings for r2 from day 3 to day 5"
+    ],
+    "data": {
+      "roomId": "r2",
+      "guests": 1,
+      "checkInDays": 3,
+      "checkOutDays": 5,
+      "existing": {
+        "checkInDays": 5,
+        "checkOutDays": 7
+      }
+    },
+    "expected": "201 Created",
+    "title": "A stay may end on the day another stay starts"
+  }
+]

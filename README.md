@@ -57,6 +57,7 @@ npm test
 | `src/agents/reviewer/` | The Reviewer: checks each generated test against its case, with a calibration set (Chapter 10) |
 | `src/tools/crew/` | The crew as an MCP server for your IDE: status, review, approvals and filing that ask you first (Chapter 11) |
 | `src/crew/` | The orchestrator: the crew as one run, with approval gates, a budget and a summary of your decisions (Chapter 9) |
+| `src/evals/` | Evals: golden sets, scorers and repeated trials for every agent, with a scorecard per model (Chapter 12) |
 
 More folders appear as you progress through the book (`src/agents/`, `src/tools/`, `src/crew/` and so on).
 
@@ -131,6 +132,23 @@ QA_MODEL_PROVIDER=mock npm run crew -- start --auto   # the whole crew, scripted
 Since Chapter 10, a Reviewer checks every generated test against its case between the Executor and the
 Triager, and sends findings back to the Executor for one revision. `npm run ch10` measures the Reviewer
 on a calibration set of tests with planted defects.
+
+## Evaluating the crew (Chapter 12)
+
+Every agent has an eval suite: a fixed input, a golden set written by a person, and scorers in plain code.
+`npm run eval` runs each suite several times and writes a scorecard: score, range, the checks that are
+unstable from one trial to the next, tokens and time.
+
+```bash
+npm run eval                                   # analyst, designer, triager, reviewer; 3 trials each
+npm run eval -- --suite analyst --trials 5     # one suite, more trials
+npm run eval -- --suite executor               # the slow suite: writes and runs Playwright tests
+QA_ANALYST_MODEL=gemini-3.5-flash-lite npm run eval -- --suite analyst --label flash-lite
+npm run eval -- --compare out/evals/claude-sonnet-5-5.json out/evals/flash-lite.json
+QA_MODEL_PROVIDER=mock npm run eval            # the scripted agents: no API key
+```
+
+The inputs that come from a live run are frozen in `src/evals/fixtures/` (`npm run eval:freeze` records them again).
 
 ## Requirements and traceability
 

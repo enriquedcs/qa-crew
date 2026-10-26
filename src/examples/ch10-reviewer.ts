@@ -8,19 +8,13 @@
 //
 // Writes: out/reviewer/calibration-<model>.md
 
-import type { MockTurn } from "../llm/index.ts";
 import { connectMcpServers, loadMcpConfig } from "../mcp/connect.ts";
-import { CALIBRATION_SET, calibrate, renderCalibration } from "../agents/reviewer/calibration.ts";
+import { CALIBRATION_SET, calibrate, renderCalibration, rubberStamp } from "../agents/reviewer/calibration.ts";
 import { loadEnv, modelForRole, writeArtifact } from "../agents/shared.ts";
 
 loadEnv();
 
-/** The weakest possible reviewer: approves every test without reading it. */
-function rubberStamp(): MockTurn[] {
-  return CALIBRATION_SET.map(() => ({ toolCalls: [{ name: "submit_result", input: { verdict: "approve", summary: "Looks good to me.", findings: [] } }] }));
-}
-
-const model = modelForRole("reviewer", rubberStamp);
+const model = modelForRole("reviewer", () => rubberStamp());
 const label = model.provider === "mock" ? "a rubber stamp (scripted: approves everything)" : `${model.provider} / ${model.model}`;
 const servers = await loadMcpConfig(".mcp.json");
 const toolbox = await connectMcpServers([

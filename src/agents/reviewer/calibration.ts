@@ -1,6 +1,7 @@
 import type { Tool } from "../../agent/runAgent.ts";
 import type { ExecutionReport, Review, ReviewCheck, TestCase } from "../../crew/contracts.ts";
 import type { ModelClient, Usage } from "../../llm/types.ts";
+import type { MockTurn } from "../../llm/mock.ts";
 import { preReview } from "./checks.ts";
 import { runReviewer } from "./reviewer.ts";
 
@@ -141,6 +142,11 @@ export const CALIBRATION_SET: CalibrationSample[] = [
   expect(second.status()).toBe(404);`),
   },
 ];
+
+/** The weakest possible reviewer: approves every test without reading it. The baseline any Reviewer must beat. */
+export function rubberStamp(samples = CALIBRATION_SET): MockTurn[] {
+  return samples.map(() => ({ toolCalls: [{ name: "submit_result", input: { verdict: "approve", summary: "Looks good to me.", findings: [] } }] }));
+}
 
 export interface CalibrationResult {
   sample: string;
