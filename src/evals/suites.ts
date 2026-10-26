@@ -1,5 +1,5 @@
 import { readFileSync } from "node:fs";
-import type { Tool } from "../agent/runAgent.ts";
+import type { AgentEvent, Tool } from "../agent/runAgent.ts";
 import type { EvidencePack, ExecutionReport, RiskMap, TestCase, TriageItem } from "../crew/contracts.ts";
 import { risksForDesign } from "../agents/analyst/curate.ts";
 import { runAnalyst } from "../agents/analyst/analyst.ts";
@@ -40,7 +40,7 @@ export interface Suite {
   env?: Record<string, string>;
   /** Writes files and runs Playwright: slower, and only on request. */
   slow?: boolean;
-  trial(model: ModelClient, tools: Tool[]): Promise<TrialOutput>;
+  trial(model: ModelClient, tools: Tool[], onEvent?: (event: AgentEvent) => void): Promise<TrialOutput>;
 }
 
 const add = (a: Usage, b: Usage): Usage => ({ inputTokens: a.inputTokens + b.inputTokens, outputTokens: a.outputTokens + b.outputTokens });
@@ -53,8 +53,8 @@ export const SUITES: Suite[] = [
     description: "Risk map for booking-rules: must-find risks, grounding, the FR-007 question",
     script: () => scriptedAnalyst("booking-rules"),
     tools: READ_ONLY,
-    async trial(model, tools) {
-      const { riskMap, run } = await runAnalyst({ model, tools, feature: "booking-rules" });
+    async trial(model, tools, onEvent) {
+      const { riskMap, run } = await runAnalyst({ model, tools, feature: "booking-rules", onEvent });
       return { checks: scoreRiskMap(riskMap), usage: run.usage, steps: run.steps };
     },
   },
@@ -63,9 +63,9 @@ export const SUITES: Suite[] = [
     description: "Test plan from a reviewed risk map: coverage, boundaries, oracles, open questions",
     script: () => scriptedDesigner("booking-rules"),
     tools: READ_ONLY,
-    async trial(model, tools) {
+    async trial(model, tools, onEvent) {
       const risks = risksForDesign(fixture<RiskMap>("risk-map.json"));
-      const { run, plan } = await runDesigner({ model, tools: [...tools, ...testDataTools()], feature: "booking-rules", risks });
+      const { run, plan } = await runDesigner({ model, tools: [...tools, ...testDataTools()], feature: "booking-rules", risks, onEvent });
       // Score what the model proposed AND what curation kept: curation hides mistakes from people, not from evals.
       const raw = run.output;
       return { checks: scoreTestPlan(raw, plan ?? (raw ? curateTestPlan(raw, risks) : undefined), risks), usage: run.usage, steps: run.steps };
@@ -78,12 +78,12 @@ export const SUITES: Suite[] = [
     tools: { include: ["read_test_file", "list_test_files", "get_api_reference", "list_rooms", "write_generated_test", "run_generated_test"] },
     env: { QA_TOOLS_ALLOW_TEST_WRITES: "true" },
     slow: true,
-    async trial(model, tools) {
+    async trial(model, tools, onEvent) {
       const reports: ExecutionReport[] = [];
       let usage = ZERO;
       let steps = 0;
       for (const testCase of fixture<TestCase[]>("test-cases.json")) {
-        const { report, run } = await runExecutor({ model, tools, testCase });
+        const { report, run } = await runExecutor({ model, tools, testCase, onEvent });
         usage = add(usage, run.usage);
         steps += run.steps;
         if (report) reports.push(report);
@@ -96,12 +96,12 @@ export const SUITES: Suite[] = [
     description: "The demo red build, frozen: product bug, duplicate, test bug and flaky test",
     script: scriptedTriager,
     tools: { include: ["read_test_file", "list_requirements", "get_api_reference", "search_issues", "search_knowledge", "recent_changes"] },
-    async trial(model, tools) {
+    async trial(model, tools, onEvent) {
       const items: TriageItem[] = [];
       let usage = ZERO;
       let steps = 0;
       for (const pack of fixture<EvidencePack[]>("triage-evidence.json")) {
-        const { item, run } = await runTriager({ model, tools, pack });
+        const { item, run } = await runTriager({ model, tools, pack, onEvent });
         usage = add(usage, run.usage);
         steps += run.steps;
         if (item) items.push(item);
@@ -114,8 +114,8 @@ export const SUITES: Suite[] = [
     description: "The calibration set from Chapter 10: 7 planted defects and 3 clean tests",
     script: () => rubberStamp(),
     tools: { include: ["read_test_file", "list_requirements", "get_api_reference"] },
-    async trial(model, tools) {
-      const report = await calibrate(model, tools);
+    async trial(model, tools, onEvent) {
+      const report = await calibrate(model, tools, undefined, onEvent);
       return { checks: scoreCalibration(report), usage: report.usage, steps: report.results.length };
     },
   },

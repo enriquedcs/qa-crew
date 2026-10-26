@@ -1,4 +1,4 @@
-import type { Tool } from "../../agent/runAgent.ts";
+import type { AgentEvent, Tool } from "../../agent/runAgent.ts";
 import type { ExecutionReport, Review, ReviewCheck, TestCase } from "../../crew/contracts.ts";
 import type { ModelClient, Usage } from "../../llm/types.ts";
 import type { MockTurn } from "../../llm/mock.ts";
@@ -169,13 +169,13 @@ export interface CalibrationReport {
   usage: Usage;
 }
 
-export async function calibrate(model: ModelClient, tools: Tool[] = [], samples = CALIBRATION_SET): Promise<CalibrationReport> {
+export async function calibrate(model: ModelClient, tools: Tool[] = [], samples = CALIBRATION_SET, onEvent?: (event: AgentEvent) => void): Promise<CalibrationReport> {
   const results: CalibrationResult[] = [];
   const usage: Usage = { inputTokens: 0, outputTokens: 0 };
   for (const s of samples) {
     const code = preReview(s.testCase, s.source).facts.some((f) => f.check === s.defect);
     const report: ExecutionReport = { caseId: s.testCase.id, file: `${s.testCase.id.toLowerCase()}.spec.ts`, outcome: s.result, attempts: 1, evidence: s.result === "passed" ? "1 passed." : "Expected 400, Received 201.", notes: "", verified: true };
-    const { review, run } = await runReviewer({ model, tools, testCase: s.testCase, source: s.source, report });
+    const { review, run } = await runReviewer({ model, tools, testCase: s.testCase, source: s.source, report, onEvent });
     usage.inputTokens += run.usage.inputTokens;
     usage.outputTokens += run.usage.outputTokens;
     const flagged = !!review?.findings.some((f) => f.check === s.defect && f.severity !== "minor");

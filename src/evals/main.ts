@@ -66,7 +66,15 @@ for (const suite of suites) {
       modelName = `${model.provider} / ${model.model}`;
       const started = Date.now();
       try {
-        const out = await suite.trial(model, toolbox.tools);
+        // Progress, so a slow model does not look stuck: one line per model call, with the tools it asked for.
+        let calls = 0;
+        const out = await suite.trial(model, toolbox.tools, (e) => {
+          if (e.type !== "model") return;
+          calls++;
+          const tools = e.toolCalls.map((c) => c.name).join(", ") || "(text)";
+          const elapsed = ((Date.now() - started) / 1000).toFixed(0);
+          console.log(`    trial ${i} · call ${calls} · ${elapsed}s · ${tools}`);
+        });
         const trial: Trial = { score: scoreOf(out.checks), ...out, seconds: (Date.now() - started) / 1000 };
         results.push(trial);
         const failed = out.checks.filter((c) => !c.passed).map((c) => c.name);
