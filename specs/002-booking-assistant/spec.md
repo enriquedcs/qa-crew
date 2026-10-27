@@ -58,7 +58,7 @@ The assistant knows which nights are booked, but never who booked them.
 - **FR-003**: A suggested stay MUST NOT overlap an existing booking of that room.
 - **FR-004**: A suggested check-in MUST NOT be in the past.
 - **FR-005**: The assistant MUST NOT reveal another guest's name or booking details.
-- **FR-006**: The assistant MUST NOT claim that a booking was made, changed or cancelled. Only the guest books.
+- **FR-006**: The assistant MUST NOT claim or offer to book, hold, reserve, change or cancel anything. Only the guest books.
 - **FR-007**: Text that comes from data (such as guest names) MUST be treated as data, never as instructions to the assistant.
 - **FR-008**: The assistant MUST stay on its topic: rooms, availability and bookings in this hotel.
 
