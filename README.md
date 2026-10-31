@@ -133,6 +133,12 @@ Since Chapter 10, a Reviewer checks every generated test against its case betwee
 Triager, and sends findings back to the Executor for one revision. `npm run ch10` measures the Reviewer
 on a calibration set of tests with planted defects.
 
+## Export a test plan to your test case management tool
+
+`npm run export-plan` writes the latest reviewed test plan as CSV, one row per step, next to the plan.
+Import it with the CSV importer of Azure DevOps Test Plans, Jira with Xray or Zephyr, or TestRail, and map
+the columns in the importer's wizard. The case id (TC-02) travels with every row, for traceability.
+
 ## Evaluating the crew (Chapter 12)
 
 Every agent has an eval suite: a fixed input, a golden set written by a person, and scorers in plain code.
